@@ -304,9 +304,29 @@ public final class RewardPlan {
    points("FASTag and railways",1,20000,"FASTag","IRCTC"),
    points(EXCLUDED,0,0,"petrol","fuel","rent payment")));
  }
+ /** Coins are worth a fifth of their face value: 5 Scapia coins make ₹1. */
+ public static RewardPlan scapiaFederal(){
+  return new RewardPlan("scapia-federal","Scapia Federal",UNIT_POINTS,CAP_NONE,0,20,Arrays.asList(
+   points("Scapia app travel bookings",20,10000,"Scapia"),
+   points("Everyday spends",10,10000),
+   points("UPI spends",5,10000),
+   points("Excluded: utilities, insurance",0,0,"insurance","rent payment","petrol","fuel")));
+ }
+ public static RewardPlan regaliaGoldHdfc(){
+  return new RewardPlan("hdfc-regalia-gold","HDFC Regalia Gold",UNIT_POINTS,CAP_NONE,0,20,Arrays.asList(
+   points("Partner brands",20,15000,"Nykaa","Myntra","Reliance Digital","Marks and Spencer","Marks & Spencer","FSN E Commerce","Infiniti Retail"),
+   points("Everyday spends",4,15000),
+   points("Excluded: fuel, rent, wallet loads",0,0,"petrol","fuel","rent payment","wallet load")));
+ }
+ public static RewardPlan indusIndTiger(){
+  return new RewardPlan("indusind-tiger","IndusInd Tiger",UNIT_POINTS,CAP_NONE,0,40,Arrays.asList(
+   points("Everyday spends",1,10000),
+   points("Excluded: fuel, rent, utilities",0,0,"petrol","fuel","rent payment")));
+ }
  public static List<RewardPlan> presets(){
   return Arrays.asList(hsbcLivePlus(),amazonPayIcici(),swiggyHdfc(),phonePeHdfcUltimo(),axisNeo(),
-   idfcFirstMillennia(),acceleratedCashback(),flatCashback(),rewardPoints());
+   idfcFirstMillennia(),scapiaFederal(),regaliaGoldHdfc(),indusIndTiger(),
+   acceleratedCashback(),flatCashback(),rewardPoints());
  }
  public static RewardPlan preset(String id){
   for(RewardPlan plan:presets())if(plan.id.equals(id))return plan;

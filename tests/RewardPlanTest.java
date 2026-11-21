@@ -91,7 +91,12 @@ public class RewardPlanTest {
    "the longest listed merchant wins");
 
   // Every preset must survive validation and a round trip.
-  check(RewardPlan.presets().size()==9,"all nine presets are offered");
+  check(RewardPlan.presets().size()==12,"all twelve presets are offered");
+  check(RewardPlan.scapiaFederal().pointValuePaise==20,"a Scapia coin is worth 20 paise");
+  check(RewardPlan.scapiaFederal().suggest("SCAPIA TRAVEL")==1,"a Scapia booking lands in the travel category");
+  check(RewardPlan.regaliaGoldHdfc().suggest("NYKAA FASHION")==1,"a Regalia partner brand lands in the 5X category");
+  check(RewardPlan.regaliaGoldHdfc().category(2).blockPaise==15000,"Regalia earns per ₹150 of spend");
+  check(RewardPlan.indusIndTiger().pointValuePaise==40,"an IndusInd point is worth 40 paise");
   for(RewardPlan preset:RewardPlan.presets()){
    check(RewardPlan.fromJson(preset.toJson()).toJson().equals(preset.toJson()),"preset "+preset.id+" round trips with its new fields");
    check(preset.labels().length==preset.categories.size()+1,"preset "+preset.id+" labels every category");
