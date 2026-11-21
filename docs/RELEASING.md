@@ -41,14 +41,17 @@ says so in the release notes.
 1. Update `versionName` and `versionCode` in the manifest.
 2. Add the release's changes to `CHANGELOG.md`, and update `.github/RELEASE_NOTES.md`.
 3. Run the tests: `./tools/test.sh`.
-4. Commit, then tag the commit and push the tag:
+4. Commit and push to `main`, then start the release in either of two ways:
+   - **From GitHub:** open **Actions → Build and publish APK release → Run workflow**, choose
+     `main` and enter the version, such as `1.0.0`. The workflow creates the `v1.0.0` tag itself.
+   - **From git:** tag the commit and push the tag.
 
-   ```sh
-   git tag -a v1.0.0 -m "Cards Ledger 1.0.0"
-   git push origin v1.0.0
-   ```
+     ```sh
+     git tag -a v1.0.0 -m "Cards Ledger 1.0.0"
+     git push origin v1.0.0
+     ```
 
-The workflow checks that the tag matches `versionName`, builds and verifies the SMS edition, and
+Either way, the workflow checks that the version matches `versionName`, builds and verifies the SMS edition, and
 publishes a GitHub release with `Cards-Ledger-SMS.apk` and `SHA256SUMS.txt`. A tag with a suffix,
 such as `v1.1.0-beta.1`, is published as a prerelease.
 

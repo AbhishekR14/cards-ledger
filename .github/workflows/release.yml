@@ -1,6 +1,8 @@
 name: Build and publish APK release
 
-# Pushing a tag such as v1.0.0 builds, verifies and publishes the SMS edition as a GitHub release.
+# Pushing a tag such as v1.0.0, or running this workflow from the Actions tab with a version,
+# builds, verifies and publishes the SMS edition as a GitHub release. Run from the Actions tab, it
+# creates the tag itself on the commit it built.
 # With the ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD secrets set, every release is
 # signed with that retained key, so each one installs over the last. Without them the release is
 # signed with a key generated for this run, and its notes say so. See docs/RELEASING.md.
@@ -8,6 +10,11 @@ name: Build and publish APK release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, matching versionName in the manifest (for example 1.0.0)
+        required: true
 
 permissions:
   contents: write
@@ -32,14 +39,18 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Check the tag against the app version
+        env:
+          REQUESTED: ${{ inputs.version }}
         run: |
           $ErrorActionPreference = 'Stop'
-          if ($env:GITHUB_REF_NAME -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') { throw 'Use a version tag such as v1.0.0 or v1.1.0-beta.1.' }
+          $tag = if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') { 'v' + $env:REQUESTED.Trim().TrimStart('v') } else { $env:GITHUB_REF_NAME }
+          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') { throw "Use a version such as 1.0.0 or 1.1.0-beta.1, not '$tag'." }
           [xml]$manifest = Get-Content -LiteralPath 'app/src/main/AndroidManifest.xml' -Raw
           $version = $manifest.manifest.GetAttribute('versionName','http://schemas.android.com/apk/res/android')
-          $baseTag = ($env:GITHUB_REF_NAME.Substring(1) -split '-',2)[0]
-          if ($version -ne $baseTag) { throw "Tag $env:GITHUB_REF_NAME does not match the manifest's version $version." }
+          $baseTag = ($tag.Substring(1) -split '-',2)[0]
+          if ($version -ne $baseTag) { throw "Version $tag does not match the manifest's version $version." }
           "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install the Android platform and build tools
         run: |
           $ErrorActionPreference = 'Stop'
@@ -89,8 +100,10 @@ jobs:
             $lines += 'This release is signed with a key generated for it. A later release signed with a different key will not install over it: back up from **Settings → Back up everything**, uninstall, install the new release and restore.'
           }
           [IO.File]::WriteAllText((Join-Path $PWD 'build/NOTES.md'),$notes+($lines -join [Environment]::NewLine)+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
-          $releaseArgs = @('release','create',$env:GITHUB_REF_NAME,'build/Cards-Ledger-SMS.apk','build/SHA256SUMS.txt','--repo',$env:GITHUB_REPOSITORY,'--verify-tag','--title',"Cards Ledger $env:APP_VERSION",'--notes-file','build/NOTES.md')
-          if ($env:GITHUB_REF_NAME.Contains('-')) { $releaseArgs += '--prerelease' } else { $releaseArgs += '--latest' }
+          $releaseArgs = @('release','create',$env:RELEASE_TAG,'build/Cards-Ledger-SMS.apk','build/SHA256SUMS.txt','--repo',$env:GITHUB_REPOSITORY,'--title',"Cards Ledger $env:APP_VERSION",'--notes-file','build/NOTES.md')
+          # A pushed tag must already exist; a run from the Actions tab creates it on the commit just built.
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') { $releaseArgs += @('--target',$env:GITHUB_SHA) } else { $releaseArgs += '--verify-tag' }
+          if ($env:RELEASE_TAG.Contains('-')) { $releaseArgs += '--prerelease' } else { $releaseArgs += '--latest' }
           & gh @releaseArgs
           if ($LASTEXITCODE -ne 0) { throw 'Creating the GitHub release failed. Check whether this tag already has a release before retrying.' }
       - name: Remove signing files
