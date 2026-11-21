@@ -117,7 +117,7 @@ against your statement and edit it in the card's **Settings → Reward plan**.
 | **PhonePe HDFC Ultimo** | 10% on PhonePe bills and recharges capped at ₹1,000, 5% on select online brands capped at ₹500, 1% on UPI scan and pay capped at ₹500 | Rate structure comes from PhonePe's own materials; **the caps are third-party figures and unverified** |
 | **Axis NEO** | 1 point per ₹200, a point worth ₹0.20; fuel, rent and utilities earn nothing | Correct as a reward model, but this card's real value is coupon offers on Zomato, Blinkit and bill payments, which a ledger cannot track |
 | **IDFC FIRST Millennia** | 3 points per ₹200 normally, 10 per ₹200 above ₹20,000 of monthly spend and on your birthday, 1 per ₹200 on FASTag and railways, a point worth ₹0.25 | Rates confirmed in the bank's own January 2026 notice. **The ₹20,000 threshold is not applied automatically** — put those purchases in the accelerated category yourself |
-| **Scapia Federal** | 20 coins per ₹100 on Scapia app travel bookings, 10 per ₹100 on everyday spends, 5 per ₹100 on UPI, a coin worth ₹0.20 (5 coins = ₹1) | Coin rates and the ₹0.20 value are consistent across sources; the UPI tier comes from Scapia's own app listing. Utilities and insurance stopped earning coins on 27 February 2026 |
+| **Scapia Federal** | 20 coins per ₹100 on Scapia app travel bookings, 10 per ₹100 on everyday spends, 5 per ₹100 on UPI, a coin worth ₹0.20 (5 coins = ₹1) | Coin rates and the ₹0.20 value are consistent across sources; the UPI tier comes from Scapia's own app listing. Utilities and insurance stopped earning coins on 27 February 2026. The **UPI tier only applies to the RuPay variant**, since only RuPay credit cards can be linked to UPI |
 | **HDFC Regalia Gold** | 4 points per ₹150, 20 per ₹150 at Nykaa, Myntra, Reliance Digital and Marks & Spencer, a point valued at ₹0.20 | Earn rates are on HDFC's own page. **The point value depends on how you redeem**: ₹0.20 as statement cashback, around ₹0.50 through SmartBuy flights and hotels — the preset takes the conservative route. HDFC lists changes effective 15 May 2026 that I could not read; check for a monthly cap on the 5X tier |
 | **IndusInd Tiger** | 1 point per ₹100, a point worth ₹0.40 | **The rate is a slab, not a constant**: 1 point per ₹100 up to ₹1 lakh of annual spend, rising to 6 above ₹5 lakh. Raise the rate in the plan as your yearly spend crosses a slab. Cash redemption is capped at 5,000 points a month |
 | Accelerated cashback, Flat cashback, Reward points | Blank starting shapes | Yours to fill in |
@@ -130,6 +130,17 @@ Three things no plan can work out on its own, so handle them yourself:
   and Blinkit. A ledger never sees it.
 - **A reward whose value depends on how you redeem it** — Regalia points are worth ₹0.20 as
   cashback and around ₹0.50 through SmartBuy. Set the point value to the route you actually use.
+
+### Two cards from the same bank
+
+Nothing special is needed: add a tile for each, give both the same bank name, and let the last
+four digits tell them apart. An alert names one suffix, so only one card takes it. Card names
+must differ, so call them something like "Scapia RuPay" and "Scapia Visa".
+
+A **Scapia Federal RuPay and Visa pair** can share the preset. Only the RuPay card can be linked
+to UPI, so only its tile will ever fill the UPI tier; on the Visa card that category simply stays
+empty, or you can remove it from that card's plan. Each card keeps its own plan, so editing one
+leaves the other alone.
 
 ## How an alert finds its card
 

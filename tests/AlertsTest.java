@@ -61,6 +61,18 @@ public class AlertsTest {
   Alerts.Match bySender=route("AD-AXISBK","INR 500 spent on Credit Card ending 5678 at CAFE");
   check(bySender!=null&&bySender.cardId==2,"the sender id alone can name the bank");
 
+  // Two cards at the same bank, told apart by their digits alone: a RuPay and a Visa card on the
+  // same account write identical alerts except for the suffix.
+  List<Alerts.Target> twins=Arrays.asList(target(7,"1111","Federal"),target(8,"2222","Federal"));
+  Alerts.Match rupay=Alerts.route("AD-FEDBNK","INR 300.00 spent on Federal Bank RuPay Credit Card XX1111 via UPI at ZEPTO",NOW,twins);
+  Alerts.Match visa=Alerts.route("AD-FEDBNK","INR 300.00 spent on Federal Bank Credit Card XX2222 at ZEPTO",NOW,twins);
+  check(rupay!=null&&rupay.cardId==7,"the first card takes the alert with its own digits");
+  check(visa!=null&&visa.cardId==8,"the second card takes the alert with its own digits");
+  check(Alerts.routeAll("AD-FEDBNK","INR 300.00 spent on Federal Bank Credit Card XX2222 at ZEPTO",NOW,twins).size()==1,
+   "one bank with two cards claims an alert once");
+  check(Alerts.route("AD-FEDBNK","INR 300.00 spent on Federal Bank Credit Card XX3333 at ZEPTO",NOW,twins)==null,
+   "a third card at the same bank is not captured by either");
+
   // Sender filtering, for a bank whose name is too generic on its own.
   List<Alerts.Target> filtered=Arrays.asList(target(4,"4321","Bank","AD-ONEBNK"));
   check(Alerts.route("AD-ONEBNK","INR 100 spent on Bank Credit Card ending 4321 at CAFE",NOW,filtered)!=null,"a listed sender is accepted");
