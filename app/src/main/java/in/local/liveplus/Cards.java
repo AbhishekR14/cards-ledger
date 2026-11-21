@@ -100,6 +100,55 @@ public final class Cards {
  /** True when at least one card can actually capture, so the global switch has something to do. */
  public static boolean anyReady(Context context){return !targets(context).isEmpty();}
 
+ /** Everything on this device, ready to be written to one file. */
+ public static Vault.Snapshot snapshot(Context context){
+  Vault.Snapshot out=new Vault.Snapshot();
+  out.theme=global(context).getString("theme","light");
+  for(CardBook.Card card:book(context).cards()){
+   Vault.CardData data=new Vault.CardData();
+   data.card=card;
+   SharedPreferences p=prefs(context,card.id);
+   data.last4=p.getString("last4","");
+   data.statementDay=p.getInt("day",0);
+   data.cap=p.getLong("cap",0);
+   data.periodSet=p.getBoolean("periodSet",false);
+   data.myntra=p.getBoolean("myntra",false);
+   data.plan=p.getString("plan","");
+   try(Store store=store(context,card.id)){
+    data.rows.addAll(store.all());
+    data.rules.putAll(store.rules());
+   }
+   out.cards.add(data);
+  }
+  return out;
+ }
+ /**
+  * Replaces everything on this device with a backup: the cards, their ledgers, their mappings,
+  * their plans and the theme. Capture is left off until it is turned on again, as upstream's
+  * own restore does.
+  */
+ public static void apply(Context context,Vault.Snapshot snapshot){
+  for(CardBook.Card card:book(context).cards())delete(context,card.id);
+  CardBook book=new CardBook();
+  for(Vault.CardData data:snapshot.cards)book.restore(data.card);
+  save(context,book);
+  global(context).edit().putString("theme",snapshot.theme).putBoolean("capture",false).remove("started").apply();
+  for(Vault.CardData data:snapshot.cards){
+   prefs(context,data.card.id).edit()
+    .putString("last4",data.last4)
+    .putInt("day",data.statementDay)
+    .putLong("cap",data.cap)
+    .putBoolean("periodSet",data.periodSet)
+    .putBoolean("myntra",data.myntra)
+    .putString("plan",data.plan)
+    .apply();
+   try(Store store=store(context,data.card.id)){
+    store.wipe();
+    store.restore(data.rows);
+    for(Map.Entry<String,Integer> rule:data.rules.entrySet())store.rule(rule.getKey(),rule.getValue());
+   }
+  }
+ }
  /**
   * Creates the first card from a single-card install, and moves device-wide settings into the
   * global file. Runs once; afterwards the registry exists and this returns immediately.

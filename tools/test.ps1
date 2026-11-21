@@ -29,11 +29,16 @@ $sources = @(
   (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/Rewards.java'),
   (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/CardBook.java'),
   (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/Alerts.java'),
+  (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/Rows.java'),
+  (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/Credits.java'),
+  (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/Vault.java'),
   (Join-Path $repoRoot 'tests/JsonTest.java'),
   (Join-Path $repoRoot 'tests/RewardPlanTest.java'),
   (Join-Path $repoRoot 'tests/RewardsTest.java'),
   (Join-Path $repoRoot 'tests/CardBookTest.java'),
   (Join-Path $repoRoot 'tests/AlertsTest.java'),
+  (Join-Path $repoRoot 'tests/CreditsTest.java'),
+  (Join-Path $repoRoot 'tests/VaultTest.java'),
   (Join-Path $repoRoot 'tests/MultiCardTest.java')
 )
 & $javac -encoding UTF-8 -source 8 -target 8 -Xlint:-options -d $OutputDirectory @sources

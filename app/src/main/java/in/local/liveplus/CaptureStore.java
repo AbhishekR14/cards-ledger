@@ -10,14 +10,20 @@ public final class CaptureStore {
  // MULTI-CARD: the alert router picks the card; the transaction is written to that card's ledger
  // with that card's own merchant mappings.
  public static synchronized int save(Context context,int cardId,Engine.Parsed parsed,String event,long received,boolean possibleDuplicate,String source){
+  return save(context,cardId,parsed,event,received,possibleDuplicate,source,false);
+ }
+ // MULTI-CARD: a credit is money posted to the card, so it is stored without a reward category
+ // and left out of spending.
+ public static synchronized int save(Context context,int cardId,Engine.Parsed parsed,String event,long received,boolean possibleDuplicate,String source,boolean credit){
   try(Store store=Cards.store(context,cardId)){
    SharedPreferences p=Cards.prefs(context,cardId);
-   Engine.Tx x=new Engine.Tx();x.amount=parsed.amount;x.merchant=parsed.merchant;x.date=parsed.date;x.refund=parsed.refund;x.received=received;x.source=source;x.event=event;
+   Rows.Row x=new Rows.Row();x.amount=parsed.amount;x.merchant=parsed.merchant;x.date=parsed.date;x.refund=parsed.refund;x.received=received;x.source=source;x.event=event;x.credit=credit;
    RewardPlan plan=Cards.plan(context,cardId);
-   store.categorize(x,p.getBoolean("myntra",false),Cards.usesBuiltInCategories(plan),plan);x.duplicate=possibleDuplicate;if(x.duplicate)x.confirmed=false;
+   if(credit){x.confirmed=true;x.category=0;}
+   else{store.categorize(x,p.getBoolean("myntra",false),Cards.usesBuiltInCategories(plan),plan);x.duplicate=possibleDuplicate;if(x.duplicate)x.confirmed=false;}
    for(Engine.Tx existing:store.all()){
     if(existing.event.equals(x.event))return 2;
-    if(!existing.refund&&!x.refund&&existing.active&&existing.amount==x.amount&&Math.abs(existing.received-x.received)<=120000&&Engine.key(existing.merchant).equals(Engine.key(x.merchant))){x.duplicate=true;x.confirmed=false;}
+    if(!credit&&!existing.refund&&!x.refund&&existing.active&&existing.amount==x.amount&&Math.abs(existing.received-x.received)<=120000&&Engine.key(existing.merchant).equals(Engine.key(x.merchant))){x.duplicate=true;x.confirmed=false;}
    }
    // MULTI-CARD: capture state is device-wide, so the marker goes to the global file.
    if(store.save(x)>0){Store.prefs(context).edit().putLong("lastCaptured",System.currentTimeMillis()).apply();context.sendBroadcast(new Intent("in.local.liveplus.CHANGED").setPackage(context.getPackageName()).putExtra(Cards.EXTRA_CARD,cardId));return 1;}

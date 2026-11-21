@@ -70,6 +70,13 @@ public class AlertListener extends NotificationListenerService {
     }
     saveSnapshot(p,key,batch.state);
     if(claimed)return;
+    // MULTI-CARD: a payment or credit is never a purchase to upstream's reader, so it is looked
+    // for separately. The event digest keeps a reposted notification from being added twice.
+    Credits.Posted posted=Credits.parse(input.title+" "+input.source,input.bigText+" "+input.text,target.last4,input.posted);
+    if(posted!=null){
+     String event=NotificationCapture.digest("credit-v1|"+input.source+"|"+input.key+"|"+posted.amount+"|"+posted.date+"|"+posted.note);
+     if(CaptureStore.save(this,target.cardId,Alerts.asTransaction(posted),event,input.posted,false,"Alert",true)>0)return;
+    }
    }
   }catch(RuntimeException ignored){p.edit().putBoolean("captureError",true).apply();}
  }

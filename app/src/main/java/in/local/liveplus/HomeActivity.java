@@ -20,7 +20,7 @@ import in.local.cards.R;
  * scoped to one card. This screen and everything it draws are new to this fork.
  */
 public class HomeActivity extends Activity {
- static final int MINT=Color.rgb(185,237,204);
+ int MINT=Color.rgb(185,237,204),ON_ACCENT=Color.rgb(20,45,53),ON_TILE=Color.rgb(185,237,204),ON_NOTICE=Color.BLACK;
  int INK,MUTED,BG,SURFACE,NOTICE,CORAL,SUCCESS,TAB_BORDER;
  boolean darkMode;
  SharedPreferences g;
@@ -29,7 +29,7 @@ public class HomeActivity extends Activity {
 
  @Override public void onCreate(Bundle state){
   g=Cards.global(this);
-  darkMode=g.getString("theme","light").equals("dark");
+  darkMode=Palette.dark(this,g.getString("theme","system"));
   setTheme(darkMode?R.style.AppTheme_Dark:R.style.AppTheme_Light);
   super.onCreate(state);
   palette();
@@ -41,16 +41,17 @@ public class HomeActivity extends Activity {
   super.onResume();
   IntentFilter filter=new IntentFilter("in.local.liveplus.CHANGED");
   if(Build.VERSION.SDK_INT>=33)registerReceiver(changed,filter,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changed,filter);
-  if(darkMode!=g.getString("theme","light").equals("dark")){recreate();return;}
+  if(darkMode!=Palette.dark(this,g.getString("theme","system"))){recreate();return;}
   draw();
  }
  @Override public void onPause(){unregisterReceiver(changed);super.onPause();}
 
  int themeColor(int attribute){android.util.TypedValue value=new android.util.TypedValue();getTheme().resolveAttribute(attribute,value,true);return value.data;}
  void palette(){
-  INK=themeColor(android.R.attr.textColorPrimary);MUTED=themeColor(android.R.attr.textColorSecondary);BG=themeColor(android.R.attr.colorBackground);
-  SURFACE=themeColor(R.attr.ledgerSurface);NOTICE=themeColor(R.attr.ledgerNotice);CORAL=themeColor(R.attr.ledgerAttention);
-  SUCCESS=themeColor(R.attr.ledgerSuccess);TAB_BORDER=themeColor(R.attr.ledgerTabBorder);
+  Palette palette=Palette.of(this,darkMode);
+  INK=palette.ink;MUTED=palette.muted;BG=palette.background;SURFACE=palette.surface;
+  NOTICE=palette.notice;CORAL=palette.attention;SUCCESS=palette.success;TAB_BORDER=palette.outline;
+  MINT=palette.accent;ON_ACCENT=palette.onAccent;ON_TILE=palette.onTile;ON_NOTICE=palette.onNotice;
  }
  int dp(float n){return (int)(getResources().getDisplayMetrics().density*n+0.5f);}
  TextView text(String value,int size,int color,boolean bold){
@@ -63,8 +64,11 @@ public class HomeActivity extends Activity {
  void add(LinearLayout parent,View child){parent.addView(child,new LinearLayout.LayoutParams(-1,-2));}
  void gap(LinearLayout parent,int height){View v=new View(this);parent.addView(v,new LinearLayout.LayoutParams(1,dp(height)));}
  Button button(String label,View.OnClickListener click){
-  Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.rgb(20,45,53));b.setTextSize(14);b.setMinHeight(dp(48));
-  b.setBackgroundTintList(ColorStateList.valueOf(MINT));b.setOnClickListener(click);return b;
+  Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(ON_ACCENT);b.setTextSize(14);b.setMinHeight(dp(48));
+  int ripple=Color.argb(56,Color.red(ON_ACCENT),Color.green(ON_ACCENT),Color.blue(ON_ACCENT));
+  b.setBackgroundTintList(null);
+  b.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(ripple),background(MINT,24),background(Color.WHITE,24)));
+  b.setStateListAnimator(null);b.setElevation(0);b.setOnClickListener(click);return b;
  }
  void toast(String message){Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
  String cash(long paise){return java.text.NumberFormat.getCurrencyInstance(new Locale("en","IN")).format(paise/100d);}
@@ -89,9 +93,9 @@ public class HomeActivity extends Activity {
   grid(book);
  }
  void welcome(){
-  LinearLayout c=column();c.setPadding(dp(20),dp(20),dp(20),dp(20));c.setBackground(background(NOTICE,22));
-  add(c,text("Add your first card",21,INK,true));gap(c,6);
-  add(c,text("Each card keeps its own ledger, merchant mappings and reward plan. Start with the card you already track, then add the others.\n\nMoving from Live+ Ledger? Add the card, then open it and use Settings → Restore backup.",14,INK,false));
+  LinearLayout c=column();c.setPadding(dp(20),dp(20),dp(20),dp(20));c.setBackground(background(NOTICE,26));
+  add(c,text("Add your first card",21,ON_NOTICE,true));gap(c,6);
+  add(c,text("Each card keeps its own ledger, merchant mappings and reward plan. Start with the card you already track, then add the others.\n\nRestoring a whole-app backup instead? Open Settings above and choose Restore everything.",14,ON_NOTICE,false));
   LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);layout.bottomMargin=dp(14);
   body.addView(c,layout);
  }
@@ -124,7 +128,7 @@ public class HomeActivity extends Activity {
   String four=p.getString("last4","");
   LinearLayout tile=column();
   tile.setPadding(dp(16),dp(16),dp(16),dp(16));
-  tile.setBackground(background(card.accent,20));
+  tile.setBackground(background(card.accent,26));
   // The tile leads with what was spent this period; the reward it earned sits under it.
   String earnedText=plan.pointsUnit()?totals.reward+(totals.reward==1?" pt":" pts"):cash(earned);
   add(tile,text(card.name,17,Color.WHITE,true));
@@ -133,11 +137,11 @@ public class HomeActivity extends Activity {
   add(tile,text(cash(totals.totalSpend),24,Color.WHITE,true));
   add(tile,text("spent this period",11,Color.rgb(202,220,222),false));
   gap(tile,6);
-  add(tile,text(capped?earnedText+" of "+(plan.pointsUnit()?plan.capAmount+" pts":cash(plan.capAmount)):earnedText+" earned",13,MINT,true));
+  add(tile,text(capped?earnedText+" of "+(plan.pointsUnit()?plan.capAmount+" pts":cash(plan.capAmount)):earnedText+" earned",13,ON_TILE,true));
   if(capped){
    ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
    bar.setMax(1000);bar.setProgress((int)Math.min(1000,earned*1000/Math.max(1,plan.capAmount)));
-   bar.setProgressTintList(ColorStateList.valueOf(MINT));bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(61,82,86)));
+   bar.setProgressTintList(ColorStateList.valueOf(ON_TILE));bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.argb(60,255,255,255)));
    LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);layout.topMargin=dp(6);
    tile.addView(bar,layout);
   }
@@ -157,7 +161,7 @@ public class HomeActivity extends Activity {
   LinearLayout tile=column();
   tile.setGravity(Gravity.CENTER);
   tile.setPadding(dp(16),dp(16),dp(16),dp(16));
-  GradientDrawable outline=background(SURFACE,20);outline.setStroke(dp(1),TAB_BORDER);
+  GradientDrawable outline=background(SURFACE,26);outline.setStroke(dp(1),TAB_BORDER);
   tile.setBackground(outline);
   TextView plus=text("+",30,INK,true);plus.setGravity(Gravity.CENTER);
   add(tile,plus);

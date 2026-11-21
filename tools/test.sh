@@ -16,6 +16,9 @@ javac -encoding UTF-8 -source 8 -target 8 -Xlint:-options -d "$out" \
  "$src/Rewards.java" \
  "$src/CardBook.java" \
  "$src/Alerts.java" \
+ "$src/Rows.java" \
+ "$src/Credits.java" \
+ "$src/Vault.java" \
  "$root/tests/EngineTest.java" \
  "$root/tests/NotificationCaptureTest.java" \
  "$root/tests/SmsCaptureTest.java" \
@@ -25,6 +28,8 @@ javac -encoding UTF-8 -source 8 -target 8 -Xlint:-options -d "$out" \
  "$root/tests/RewardsTest.java" \
  "$root/tests/CardBookTest.java" \
  "$root/tests/AlertsTest.java" \
+ "$root/tests/CreditsTest.java" \
+ "$root/tests/VaultTest.java" \
  "$root/tests/MultiCardTest.java"
 java -cp "$out" EngineTest
 java -cp "$out" MultiCardTest

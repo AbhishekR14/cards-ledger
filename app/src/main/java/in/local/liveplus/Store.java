@@ -7,27 +7,31 @@ import java.util.*;
 import org.json.*;
 
 public final class Store extends SQLiteOpenHelper {
- public Store(Context c){super(c,"ledger.db",null,1);}
+ public Store(Context c){super(c,"ledger.db",null,2);}
  // MULTI-CARD: one ledger file per card. Card 1 keeps upstream's "ledger.db", so a single-card
  // install carries over untouched. See Cards and CardBook.
- public Store(Context c,String name){super(c,name,null,1);}
+ public Store(Context c,String name){super(c,name,null,2);}
  // MULTI-CARD: capture state, the chosen SMS app and the theme belong to the device, not to one
  // card, so the no-argument call now returns the global file and upstream's capture code reads it
  // unchanged. A card's own ledger settings come from prefs(context, CardBook.preferences(id)).
  public static SharedPreferences prefs(Context c){return c.getSharedPreferences(Cards.GLOBAL,Context.MODE_PRIVATE);}
  public static SharedPreferences prefs(Context c,String name){return c.getSharedPreferences(name,Context.MODE_PRIVATE);}
  @Override public void onCreate(SQLiteDatabase db){
-  db.execSQL("CREATE TABLE tx (id INTEGER PRIMARY KEY AUTOINCREMENT, amount INTEGER NOT NULL, merchant TEXT NOT NULL, date TEXT NOT NULL, category INTEGER NOT NULL, confirmed INTEGER NOT NULL, refund INTEGER NOT NULL, duplicate INTEGER NOT NULL, active INTEGER NOT NULL, received INTEGER NOT NULL, source TEXT NOT NULL, event TEXT UNIQUE, linked TEXT NOT NULL)");
+  // MULTI-CARD: the trailing credit column records money posted to the card rather than spent.
+  db.execSQL("CREATE TABLE tx (id INTEGER PRIMARY KEY AUTOINCREMENT, amount INTEGER NOT NULL, merchant TEXT NOT NULL, date TEXT NOT NULL, category INTEGER NOT NULL, confirmed INTEGER NOT NULL, refund INTEGER NOT NULL, duplicate INTEGER NOT NULL, active INTEGER NOT NULL, received INTEGER NOT NULL, source TEXT NOT NULL, event TEXT UNIQUE, linked TEXT NOT NULL, credit INTEGER NOT NULL DEFAULT 0)");
   db.execSQL("CREATE TABLE rules (merchant TEXT PRIMARY KEY, category INTEGER NOT NULL)");
  }
- @Override public void onUpgrade(SQLiteDatabase d,int a,int b){}
+ // MULTI-CARD: version 2 adds the credit column to a ledger written by version 1.
+ @Override public void onUpgrade(SQLiteDatabase d,int a,int b){
+  if(a<2)d.execSQL("ALTER TABLE tx ADD COLUMN credit INTEGER NOT NULL DEFAULT 0");
+ }
  public synchronized List<Engine.Tx> all(){
   List<Engine.Tx> out=new ArrayList<>();try(Cursor c=getReadableDatabase().rawQuery("SELECT * FROM tx ORDER BY date DESC, id DESC",null)){
-   while(c.moveToNext()){Engine.Tx x=new Engine.Tx();x.id=c.getLong(0);x.amount=c.getLong(1);x.merchant=c.getString(2);x.date=c.getString(3);x.category=c.getInt(4);x.confirmed=c.getInt(5)==1;x.refund=c.getInt(6)==1;x.duplicate=c.getInt(7)==1;x.active=c.getInt(8)==1;x.received=c.getLong(9);x.source=c.getString(10);x.event=c.isNull(11)?"":c.getString(11);x.linked=c.getString(12);out.add(x);}
+   while(c.moveToNext()){Rows.Row x=new Rows.Row();x.id=c.getLong(0);x.amount=c.getLong(1);x.merchant=c.getString(2);x.date=c.getString(3);x.category=c.getInt(4);x.confirmed=c.getInt(5)==1;x.refund=c.getInt(6)==1;x.duplicate=c.getInt(7)==1;x.active=c.getInt(8)==1;x.received=c.getLong(9);x.source=c.getString(10);x.event=c.isNull(11)?"":c.getString(11);x.linked=c.getString(12);x.credit=c.getColumnCount()>13&&c.getInt(13)==1;out.add(x);}
   }return out;
  }
  public synchronized long save(Engine.Tx x){
-  ContentValues v=new ContentValues();v.put("amount",x.amount);v.put("merchant",x.merchant);v.put("date",x.date);v.put("category",x.category);v.put("confirmed",x.confirmed?1:0);v.put("refund",x.refund?1:0);v.put("duplicate",x.duplicate?1:0);v.put("active",x.active?1:0);v.put("received",x.received);v.put("source",x.source);v.put("linked",x.linked);if(x.event.isEmpty())v.putNull("event");else v.put("event",x.event);
+  ContentValues v=new ContentValues();v.put("amount",x.amount);v.put("merchant",x.merchant);v.put("date",x.date);v.put("category",x.category);v.put("confirmed",x.confirmed?1:0);v.put("refund",x.refund?1:0);v.put("duplicate",x.duplicate?1:0);v.put("active",x.active?1:0);v.put("received",x.received);v.put("source",x.source);v.put("linked",x.linked);v.put("credit",Rows.credit(x)?1:0);if(x.event.isEmpty())v.putNull("event");else v.put("event",x.event);
   if(x.id>0){getWritableDatabase().update("tx",v,"id=?",new String[]{""+x.id});return x.id;}
   long id=getWritableDatabase().insertWithOnConflict("tx",null,v,SQLiteDatabase.CONFLICT_IGNORE);if(id>0)x.id=id;return id;
  }
@@ -62,7 +66,7 @@ public final class Store extends SQLiteOpenHelper {
   x.confirmed=suggest?remembered>0&&remembered<Engine.CATEGORIES.length:remembered>0;
  }
  public JSONArray exportRows() throws JSONException {
-  JSONArray a=new JSONArray();for(Engine.Tx x:all()){JSONObject o=new JSONObject();o.put("id",x.id);o.put("amountPaise",x.amount);o.put("merchant",x.merchant);o.put("date",x.date);o.put("category",x.category);o.put("confirmed",x.confirmed);o.put("refund",x.refund);o.put("duplicate",x.duplicate);o.put("active",x.active);o.put("received",x.received);o.put("source",x.source);o.put("event",x.event);o.put("linked",x.linked);a.put(o);}return a;
+  JSONArray a=new JSONArray();for(Engine.Tx x:all()){JSONObject o=new JSONObject();o.put("credit",Rows.credit(x));o.put("id",x.id);o.put("amountPaise",x.amount);o.put("merchant",x.merchant);o.put("date",x.date);o.put("category",x.category);o.put("confirmed",x.confirmed);o.put("refund",x.refund);o.put("duplicate",x.duplicate);o.put("active",x.active);o.put("received",x.received);o.put("source",x.source);o.put("event",x.event);o.put("linked",x.linked);a.put(o);}return a;
  }
  // MULTI-CARD: removing a reward category renumbers the ones after it, so stored rows follow.
  // Purchases in the removed category go back to needing one.
@@ -75,6 +79,21 @@ public final class Store extends SQLiteOpenHelper {
    db.execSQL("UPDATE tx SET category=category-1 WHERE category>?",target);
    db.execSQL("DELETE FROM rules WHERE category=?",target);
    db.execSQL("UPDATE rules SET category=category-1 WHERE category>?",target);
+   db.setTransactionSuccessful();
+  }finally{db.endTransaction();}
+ }
+ // MULTI-CARD: writes rows back with the ids they were exported under, for a restore.
+ public synchronized void restore(List<Engine.Tx> rows){
+  SQLiteDatabase db=getWritableDatabase();db.beginTransaction();
+  try{
+   for(Engine.Tx x:rows){
+    ContentValues v=new ContentValues();
+    v.put("id",x.id);v.put("amount",x.amount);v.put("merchant",x.merchant);v.put("date",x.date);v.put("category",x.category);
+    v.put("confirmed",x.confirmed?1:0);v.put("refund",x.refund?1:0);v.put("duplicate",x.duplicate?1:0);v.put("active",x.active?1:0);
+    v.put("received",x.received);v.put("source",x.source);v.put("linked",x.linked);v.put("credit",Rows.credit(x)?1:0);
+    if(!x.event.isEmpty())v.put("event",x.event);
+    db.insertWithOnConflict("tx",null,v,SQLiteDatabase.CONFLICT_REPLACE);
+   }
    db.setTransactionSuccessful();
   }finally{db.endTransaction();}
  }

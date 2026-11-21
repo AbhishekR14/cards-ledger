@@ -22,7 +22,9 @@ import org.json.*;
 import in.local.cards.R;
 
 public class MainActivity extends Activity {
- static final int BRAND_INK=Color.rgb(20,45,53), MINT=Color.rgb(185,237,204);
+ // MULTI-CARD: the palette follows the phone's own colours on Android 12 and newer, so these
+ // are set per draw rather than fixed. BRAND_INK is what sits on an accent fill, MINT the fill.
+ int BRAND_INK=Color.rgb(20,45,53), MINT=Color.rgb(185,237,204);
  int INK,MUTED,BG,SURFACE,NOTICE,CORAL,SUCCESS,SELECTED,ON_SELECTED,REVIEW,ON_REVIEW,TAB_BG,TAB_BORDER;
  boolean darkMode,pendingSmsEnable,pendingNotificationEnable;
  final Handler settingsHandler=new Handler(Looper.getMainLooper());
@@ -44,7 +46,7 @@ public class MainActivity extends Activity {
   if(card==null&&!device){super.onCreate(b);finish();return;}
   if(device){p=g;plan=RewardPlan.hsbcLivePlus();tab="Settings";}
   else{cardId=card.id;p=Cards.prefs(this,cardId);plan=Cards.plan(this,cardId);if(getIntent().getBooleanExtra(EXTRA_SETTINGS,false))tab="Settings";}
-  CaptureStore.prepareEdition(this);if(!CaptureMode.SMS)SmsApps.selected(this);darkMode=g.getString("theme","light").equals("dark");setTheme(darkMode?R.style.AppTheme_Dark:R.style.AppTheme_Light);super.onCreate(b);applyPalette();if(!device)store=new Store(this,card.database());getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);if(b!=null){pendingSmsEnable=b.getBoolean("pendingSmsEnable",false);pendingNotificationEnable=b.getBoolean("pendingNotificationEnable",false);tab=b.getString("tab","Overview");anchor=LocalDate.parse(b.getString("anchor",anchor.toString()));reviewOnly=b.getBoolean("reviewOnly",false);Bundle saved=b.getBundle("scrollPositions");if(saved!=null)scrollPositions=saved;}draw();
+  CaptureStore.prepareEdition(this);if(!CaptureMode.SMS)SmsApps.selected(this);darkMode=Palette.dark(this,g.getString("theme","system"));setTheme(darkMode?R.style.AppTheme_Dark:R.style.AppTheme_Light);super.onCreate(b);applyPalette();if(!device)store=new Store(this,card.database());getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);if(b!=null){pendingSmsEnable=b.getBoolean("pendingSmsEnable",false);pendingNotificationEnable=b.getBoolean("pendingNotificationEnable",false);tab=b.getString("tab","Overview");anchor=LocalDate.parse(b.getString("anchor",anchor.toString()));reviewOnly=b.getBoolean("reviewOnly",false);Bundle saved=b.getBundle("scrollPositions");if(saved!=null)scrollPositions=saved;}draw();
   // MULTI-CARD: the card grid can send a new card straight into Restore backup.
   if(!device&&b==null&&getIntent().getBooleanExtra(EXTRA_RESTORE,false)){tab="Settings";draw();restore();}}
  @Override public void onSaveInstanceState(Bundle b){if(card==null&&!device){super.onSaveInstanceState(b);return;}flushSettings();rememberScroll();b.putBoolean("pendingSmsEnable",pendingSmsEnable);b.putBoolean("pendingNotificationEnable",pendingNotificationEnable);b.putString("tab",tab);b.putString("anchor",anchor.toString());b.putBoolean("reviewOnly",reviewOnly);b.putBundle("scrollPositions",new Bundle(scrollPositions));super.onSaveInstanceState(b);}
@@ -60,30 +62,39 @@ public class MainActivity extends Activity {
  @Override public void onDestroy(){flushSettings();settingsHandler.removeCallbacksAndMessages(null);if(store!=null)store.close();super.onDestroy();}
  int themeColor(int attribute){android.util.TypedValue value=new android.util.TypedValue();getTheme().resolveAttribute(attribute,value,true);return value.data;}
  void applyPalette(){
-  INK=themeColor(android.R.attr.textColorPrimary);MUTED=themeColor(android.R.attr.textColorSecondary);BG=themeColor(android.R.attr.colorBackground);
-  SURFACE=themeColor(R.attr.ledgerSurface);NOTICE=themeColor(R.attr.ledgerNotice);CORAL=themeColor(R.attr.ledgerAttention);SUCCESS=themeColor(R.attr.ledgerSuccess);
-  SELECTED=themeColor(R.attr.ledgerSelected);ON_SELECTED=themeColor(R.attr.ledgerOnSelected);REVIEW=themeColor(R.attr.ledgerReview);ON_REVIEW=themeColor(R.attr.ledgerOnReview);
-  TAB_BG=themeColor(R.attr.ledgerTabBackground);TAB_BORDER=themeColor(R.attr.ledgerTabBorder);
+  Palette palette=Palette.of(this,darkMode);
+  INK=palette.ink;MUTED=palette.muted;BG=palette.background;SURFACE=palette.surface;
+  NOTICE=palette.notice;CORAL=palette.attention;SUCCESS=palette.success;
+  SELECTED=palette.accent;ON_SELECTED=palette.onAccent;REVIEW=palette.notice;ON_REVIEW=palette.onNotice;
+  TAB_BG=palette.surfaceHigh;TAB_BORDER=palette.outline;
+  MINT=palette.accent;BRAND_INK=palette.onAccent;ON_TILE=palette.onTile;
  }
+ int ON_TILE=Color.rgb(185,237,204);
  int dp(float n){return (int)(getResources().getDisplayMetrics().density*n+0.5f);}
  TextView text(String s,int size,int color,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setFontFeatureSettings("tnum");t.setLineSpacing(dp(3),1);if(bold)t.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));return t;}
  LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
  void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
  void add(LinearLayout l,View v){l.addView(v,new LinearLayout.LayoutParams(-1,-2));}
- LinearLayout card(LinearLayout parent,int color){LinearLayout l=column();l.setPadding(dp(20),dp(20),dp(20),dp(20));l.setBackground(bg(color,22));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(14);parent.addView(l,lp);return l;}
- Button button(String s,View.OnClickListener click){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextColor(BRAND_INK);b.setTextSize(14);b.setMinHeight(dp(48));b.setBackgroundTintList(ColorStateList.valueOf(MINT));b.setOnClickListener(click);return b;}
+ LinearLayout card(LinearLayout parent,int color){LinearLayout l=column();l.setPadding(dp(20),dp(20),dp(20),dp(20));l.setBackground(bg(color,26));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(14);parent.addView(l,lp);return l;}
+ Button button(String s,View.OnClickListener click){
+  Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextColor(BRAND_INK);b.setTextSize(14);b.setMinHeight(dp(48));
+  int ripple=Color.argb(56,Color.red(BRAND_INK),Color.green(BRAND_INK),Color.blue(BRAND_INK));
+  b.setBackgroundTintList(null);
+  b.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(ripple),bg(MINT,24),bg(Color.WHITE,24)));
+  b.setStateListAnimator(null);b.setElevation(0);b.setOnClickListener(click);return b;
+ }
  void styleTab(Button button,boolean selected,boolean attention){
   int fill=selected?SELECTED:attention?REVIEW:TAB_BG;
   int foreground=selected?ON_SELECTED:attention?ON_REVIEW:INK;
   int outline=selected?SELECTED:attention?CORAL:TAB_BORDER;
-  GradientDrawable normal=bg(fill,12);normal.setStroke(dp(1),outline);
-  GradientDrawable focused=bg(fill,12);focused.setStroke(dp(3),CORAL);
+  GradientDrawable normal=bg(fill,18);normal.setStroke(dp(1),outline);
+  GradientDrawable focused=bg(fill,18);focused.setStroke(dp(3),CORAL);
   android.graphics.drawable.StateListDrawable states=new android.graphics.drawable.StateListDrawable();
   states.addState(new int[]{android.R.attr.state_focused},focused);states.addState(new int[]{},normal);
   int ripple=Color.argb(48,Color.red(foreground),Color.green(foreground),Color.blue(foreground));
   button.setBackgroundTintList(null);
-  button.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(ripple),states,bg(Color.WHITE,12)));
+  button.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(ripple),states,bg(Color.WHITE,18)));
   button.setTextColor(foreground);button.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
   button.setPadding(dp(8),dp(4),dp(8),dp(4));button.setSelected(selected);button.setStateListAnimator(null);button.setElevation(dp(1));
  }
@@ -146,20 +157,21 @@ public class MainActivity extends Activity {
   if(p.getString("last4","").isEmpty()||!p.getBoolean("periodSet",false)){LinearLayout setup=card(body,NOTICE);add(setup,text("Make it yours",20,INK,true));gap(setup,6);add(setup,text("Set your card’s last four digits and reward period before you start tracking.",14,INK,false));add(setup,button("Set up my card",v->{tab="Settings";draw();}));}
   boolean capped=!RewardPlan.CAP_NONE.equals(plan.capBasis)&&plan.capAmount>0;
   long headline=capped?t.cappedReward:t.reward;
-  LinearLayout hero=card(body,card.accent);add(hero,text((capped?"ACCELERATED ":"")+(plan.pointsUnit()?"REWARD POINTS":"CASHBACK")+" · ESTIMATE",11,MINT,true));gap(hero,8);
+  LinearLayout hero=card(body,card.accent);add(hero,text((capped?"ACCELERATED ":"")+(plan.pointsUnit()?"REWARD POINTS":"CASHBACK")+" · ESTIMATE",11,ON_TILE,true));gap(hero,8);
   add(hero,text(reward(headline),42,Color.WHITE,true));
   add(hero,text(capped?"of "+reward(plan.capAmount)+" cap this period":"estimated for this period",14,Color.rgb(202,220,222),false));gap(hero,18);
-  if(capped){ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setMax(1000);bar.setProgress((int)Math.min(1000,headline*1000/Math.max(1,plan.capAmount)));bar.setProgressTintList(ColorStateList.valueOf(MINT));bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(61,82,86)));add(hero,bar);gap(hero,12);}
+  if(capped){ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setMax(1000);bar.setProgress((int)Math.min(1000,headline*1000/Math.max(1,plan.capAmount)));bar.setProgressTintList(ColorStateList.valueOf(ON_TILE));bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.argb(60,255,255,255)));add(hero,bar);gap(hero,12);}
   RewardPlan.Category single=plan.singleCappedRate();
-  if(t.remainingSpend>=0&&single!=null)add(hero,text(cash(t.remainingSpend)+" eligible spend left at "+rate(single),17,MINT,true));
-  else if(t.remainingReward>=0)add(hero,text(reward(t.remainingReward)+" of the cap left this period",17,MINT,true));
-  else add(hero,text(cash(t.totalSpend)+" spent this period",17,MINT,true));
+  if(t.remainingSpend>=0&&single!=null)add(hero,text(cash(t.remainingSpend)+" eligible spend left at "+rate(single),17,ON_TILE,true));
+  else if(t.remainingReward>=0)add(hero,text(reward(t.remainingReward)+" of the cap left this period",17,ON_TILE,true));
+  else add(hero,text(cash(t.totalSpend)+" spent this period",17,ON_TILE,true));
   LinearLayout info=card(body,SURFACE);add(info,text("THIS PERIOD",11,MUTED,true));gap(info,10);
   for(Rewards.Line line:t.lines){
    if(line.paying)cashbackMetric(info,line.label,line.spend,line.reward);
    else metric(info,line.label,cash(line.spend));
   }
   if(t.unknownSpend>0)metric(info,"Unclassified / possible duplicate",cash(t.unknownSpend));
+  if(t.credits>0)metric(info,"Paid to the card",cash(t.credits));
   View divider=new View(this);divider.setBackgroundColor(TAB_BORDER);info.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));gap(info,4);
   cashbackMetric(info,"Total spend",t.totalSpend,t.reward,plan.pointsUnit()?"Total estimated points":"Total estimated cashback");
   if(plan.pointsUnit()&&plan.pointValuePaise>0)metric(info,"Estimated value",cash(t.valuePaise(plan)));
@@ -197,7 +209,7 @@ public class MainActivity extends Activity {
   actions.addView(button("Add purchase",v->edit(null)),new LinearLayout.LayoutParams(0,-2,1));
   actions.addView(button("Paste alert",v->paste()),new LinearLayout.LayoutParams(0,-2,1));
   add(root,actions);
-  int count=Engine.reviewCount(store.all(),start(),end());
+  int count=Engine.reviewCount(Rows.purchases(store.all()),start(),end());
   Button review=button((reviewOnly?"✓ ":"")+"Needs review"+(count>0?" ("+count+")":""),v->{reviewOnly=!reviewOnly;draw();});
   styleTab(review,reviewOnly,count>0);
   review.setContentDescription("Needs review, "+count+" item"+(count==1?"":"s")+" in this period. "+(reviewOnly?"Filter on. Tap to show all transactions.":"Tap to show only items needing review."));
@@ -206,9 +218,10 @@ public class MainActivity extends Activity {
  void activity(){
   int count=0;for(Engine.Tx x:store.all()){
    LocalDate d=LocalDate.parse(x.date);if(!x.active||d.isBefore(start())||d.isAfter(end()))continue;
-   boolean needs=Engine.needsReview(x);if(reviewOnly&&!needs)continue;count++;
-   LinearLayout c=card(body,SURFACE);LinearLayout r=new LinearLayout(this);r.addView(text(x.merchant,17,INK,true),new LinearLayout.LayoutParams(0,-2,1));r.addView(text((x.refund?"−":"")+cash(x.amount),17,INK,true));add(c,r);gap(c,6);
-   String status=x.refund?(x.linked.isEmpty()?"Refund · link to original purchase":"Refund linked to purchase #"+x.linked):(x.duplicate?"Possible duplicate · excluded from estimate":label(x.category)+(x.confirmed?" · checked":" · suggested"));add(c,text(status,13,needs?CORAL:MUTED,false));add(c,text(x.date+"  /  "+sourceLabel(x.source),11,MUTED,false));c.setOnClickListener(v->{if(x.refund)refund(x);else edit(x);});c.setContentDescription(x.merchant+", "+cash(x.amount)+", "+status+". Tap to edit.");
+   boolean credit=Rows.credit(x);
+   boolean needs=!credit&&Engine.needsReview(x);if(reviewOnly&&!needs)continue;count++;
+   LinearLayout c=card(body,SURFACE);LinearLayout r=new LinearLayout(this);r.addView(text(x.merchant,17,INK,true),new LinearLayout.LayoutParams(0,-2,1));r.addView(text((x.refund||credit?"−":"")+cash(x.amount),17,credit?SUCCESS:INK,true));add(c,r);gap(c,6);
+   String status=credit?"Paid to the card · not spending, earns nothing":x.refund?(x.linked.isEmpty()?"Refund · link to original purchase":"Refund linked to purchase #"+x.linked):(x.duplicate?"Possible duplicate · excluded from estimate":label(x.category)+(x.confirmed?" · checked":" · suggested"));add(c,text(status,13,needs?CORAL:MUTED,false));add(c,text(x.date+"  /  "+sourceLabel(x.source),11,MUTED,false));c.setOnClickListener(v->{if(x.refund)refund(x);else edit(x);});c.setContentDescription(x.merchant+", "+cash(x.amount)+", "+status+". Tap to edit.");
   }
   if(count==0){LinearLayout c=card(body,SURFACE);add(c,text(reviewOnly?"All caught up":"A fresh start",24,INK,true));gap(c,8);add(c,text(reviewOnly?"No items need review in this period.":"There are no transactions in this period. You can add a purchase or paste a transaction alert.",14,MUTED,false));}
 
@@ -234,17 +247,21 @@ public class MainActivity extends Activity {
   add(parent,date);gap(parent,10);
  }
  void edit(Engine.Tx old){
-  boolean fresh=old==null;Engine.Tx x=fresh?new Engine.Tx():old;LinearLayout l=dialogBody();
+  boolean fresh=old==null;Rows.Row x=Rows.asRow(fresh?new Rows.Row():old);LinearLayout l=dialogBody();
+  // MULTI-CARD: the same dialog records money paid to the card, which earns nothing.
+  CheckBox paid=new CheckBox(this);paid.setText("Money paid to the card, not spent");paid.setChecked(x.credit);add(l,paid);
   EditText merchant=input(l,"Merchant",fresh?"":x.merchant,1);EditText amount=input(l,"Amount in ₹",fresh?"":BigDecimalValue(x.amount),8194);LocalDate[] selectedDate={fresh?LocalDate.now(ZoneId.of("Asia/Kolkata")):LocalDate.parse(x.date)};dateInput(l,selectedDate);
   add(l,text("Reward category",13,MUTED,true));Spinner cat=new Spinner(this);cat.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,plan.labels()));cat.setSelection(Math.max(0,Math.min(x.category,plan.count()-1)));add(l,cat);gap(l,8);add(l,text("Choose based on the bank’s merchant category, not the item purchased.",12,MUTED,false));
   CheckBox learn=new CheckBox(this);learn.setText("Remember this merchant’s category");learn.setChecked(x.category!=0&&store.rule(x.merchant)==x.category);add(l,learn);
+  cat.setEnabled(!x.credit);learn.setEnabled(!x.credit);
+  paid.setOnCheckedChangeListener((view,checked)->{cat.setEnabled(!checked);learn.setEnabled(!checked);if(checked)learn.setChecked(false);});
   // An untouched unchecked box must not remove a different saved category for an older purchase.
   boolean[] forgetRule={false};
   learn.setOnCheckedChangeListener((view,checked)->forgetRule[0]=!checked);
   add(l,text("Applies to future alerts from this merchant. Save to apply changes.",12,MUTED,false));
   if(x.duplicate)add(l,text("Possible duplicate: saving confirms this is a separate purchase. Delete it if another alert already represents it.",13,CORAL,false));
-  AlertDialog dlg=new AlertDialog.Builder(this).setTitle(fresh?"Add purchase":"Edit purchase").setView(scrolled(l)).setPositiveButton("Save",null).setNegativeButton("Cancel",null).setNeutralButton(fresh?"":"Delete",null).create();dlg.setOnShowListener(v->{
-   dlg.getButton(-1).setOnClickListener(w->{try{long n=Engine.money(amount.getText().toString());LocalDate d=selectedDate[0];String m=merchant.getText().toString().trim();if(n<=0||n>1000000000L||m.isEmpty()||m.length()>90)throw new Exception();if(learn.isChecked()&&cat.getSelectedItemPosition()==0){toast("Choose a category before remembering this merchant.");return;}long linked=0;for(Engine.Tx r:store.all())if(r.active&&r.refund&&r.linked.equals(""+x.id))linked+=r.amount;if(n<linked){toast("Amount is smaller than linked refunds. Unlink the refund first.");return;}x.amount=n;x.merchant=m;x.date=d.toString();x.category=cat.getSelectedItemPosition();x.confirmed=x.category!=0;x.duplicate=false;if(fresh)x.received=System.currentTimeMillis();store.save(x);if(learn.isChecked())store.rule(m,x.category);else if(forgetRule[0])store.forgetRule(m);dlg.dismiss();draw();}catch(Exception e){toast("Enter a merchant and a positive amount, and select a date.");}});
+  AlertDialog dlg=new AlertDialog.Builder(this).setTitle(fresh?"Add purchase or payment":"Edit entry").setView(scrolled(l)).setPositiveButton("Save",null).setNegativeButton("Cancel",null).setNeutralButton(fresh?"":"Delete",null).create();dlg.setOnShowListener(v->{
+   dlg.getButton(-1).setOnClickListener(w->{try{long n=Engine.money(amount.getText().toString());LocalDate d=selectedDate[0];String m=merchant.getText().toString().trim();if(n<=0||n>1000000000L||m.isEmpty()||m.length()>90)throw new Exception();if(learn.isChecked()&&cat.getSelectedItemPosition()==0){toast("Choose a category before remembering this merchant.");return;}long linked=0;for(Engine.Tx r:store.all())if(r.active&&r.refund&&r.linked.equals(""+x.id))linked+=r.amount;if(n<linked){toast("Amount is smaller than linked refunds. Unlink the refund first.");return;}x.amount=n;x.merchant=m;x.date=d.toString();x.credit=paid.isChecked();x.category=x.credit?0:cat.getSelectedItemPosition();x.confirmed=x.credit||x.category!=0;x.duplicate=false;if(fresh)x.received=System.currentTimeMillis();store.save(x);if(learn.isChecked()&&!x.credit)store.rule(m,x.category);else if(forgetRule[0])store.forgetRule(m);dlg.dismiss();draw();}catch(Exception e){toast("Enter a merchant and a positive amount, and select a date.");}});
    if(!fresh)dlg.getButton(-3).setOnClickListener(w->new AlertDialog.Builder(this).setMessage("Delete this purchase? Linked refund alerts will return to review.").setNegativeButton("Cancel",null).setPositiveButton("Delete",(a,b)->{x.active=false;store.save(x);for(Engine.Tx r:store.all())if(r.refund&&r.linked.equals(""+x.id)){r.linked="";store.save(r);}dlg.dismiss();draw();}).show());else dlg.getButton(-3).setVisibility(View.GONE);
   });dlg.show();
  }
@@ -258,7 +275,9 @@ public class MainActivity extends Activity {
  }
  // MULTI-CARD: the pasted alert is read for this card's bank and suffix, through the same gate
  // the automatic router uses.
- void paste(){LinearLayout l=dialogBody();add(l,text("Paste one "+card.issuer+" purchase or refund alert. OTPs are rejected. Alert text is parsed on this phone and is not saved.",14,MUTED,false));EditText e=new EditText(this);e.setHint(card.issuer+" transaction alert");e.setMinLines(4);e.setGravity(Gravity.TOP);add(l,e);AlertDialog dlg=new AlertDialog.Builder(this).setTitle("Import one alert").setView(scrolled(l)).setPositiveButton("Preview",null).setNegativeButton("Cancel",null).create();dlg.setOnShowListener(v->dlg.getButton(-1).setOnClickListener(w->{Engine.Parsed a=Alerts.parse("",e.getText().toString(),p.getString("last4",""),System.currentTimeMillis(),card.issuer);if(a==null){toast("Could not match a transaction. Check your card’s last four digits, or add it manually.");return;}Engine.Tx x=new Engine.Tx();x.amount=a.amount;x.merchant=a.merchant;x.date=a.date;x.refund=a.refund;x.received=System.currentTimeMillis();x.source="Pasted";store.categorize(x,p.getBoolean("myntra",false),Cards.usesBuiltInCategories(plan),plan);new AlertDialog.Builder(this).setTitle("Confirm import").setMessage(x.merchant+"\n"+cash(x.amount)+"\n"+x.date+"\n"+(x.refund?"Refund · needs linking":label(x.category))+"\n\nCheck for an existing purchase before importing.").setNegativeButton("Cancel",null).setPositiveButton("Add",(q,z)->{store.save(x);dlg.dismiss();draw();}).show();}));dlg.show();}
+ void paste(){LinearLayout l=dialogBody();add(l,text("Paste one "+card.issuer+" purchase or refund alert. OTPs are rejected. Alert text is parsed on this phone and is not saved.",14,MUTED,false));EditText e=new EditText(this);e.setHint(card.issuer+" transaction alert");e.setMinLines(4);e.setGravity(Gravity.TOP);add(l,e);AlertDialog dlg=new AlertDialog.Builder(this).setTitle("Import one alert").setView(scrolled(l)).setPositiveButton("Preview",null).setNegativeButton("Cancel",null).create();dlg.setOnShowListener(v->dlg.getButton(-1).setOnClickListener(w->{String pasted=e.getText().toString();boolean[] paidIn={false};Engine.Parsed a=Alerts.parse("",pasted,p.getString("last4",""),System.currentTimeMillis(),card.issuer);
+   if(a==null){Credits.Posted posted=Credits.parse("",pasted,p.getString("last4",""),System.currentTimeMillis());if(posted!=null){a=Alerts.asTransaction(posted);paidIn[0]=true;}}
+   if(a==null){toast("Could not match a transaction. Check your card’s last four digits, or add it manually.");return;}Rows.Row x=new Rows.Row();x.credit=paidIn[0];x.amount=a.amount;x.merchant=a.merchant;x.date=a.date;x.refund=a.refund;x.received=System.currentTimeMillis();x.source="Pasted";if(x.credit)x.confirmed=true;else store.categorize(x,p.getBoolean("myntra",false),Cards.usesBuiltInCategories(plan),plan);new AlertDialog.Builder(this).setTitle("Confirm import").setMessage(x.merchant+"\n"+cash(x.amount)+"\n"+x.date+"\n"+(x.credit?"Paid to the card":x.refund?"Refund · needs linking":label(x.category))+"\n\nCheck for an existing purchase before importing.").setNegativeButton("Cancel",null).setPositiveButton("Add",(q,z)->{store.save(x);dlg.dismiss();draw();}).show();}));dlg.show();}
  void merchantRules(){
   LinearLayout l=dialogBody();
   add(l,text("Your remembered and added merchant mappings. Tap a mapping to edit or delete it. These apply to new alerts and pasted purchases.",13,MUTED,false));gap(l,10);
@@ -285,16 +304,18 @@ public class MainActivity extends Activity {
   }));dialog.show();
  }
  void chooseTheme(){
-  String[] values={"light","dark"},labels={"Light","Dark"};
-  int selected=Arrays.asList(values).indexOf(g.getString("theme","light"));
+  String[] values={"system","light","dark"},labels={"Follow the system","Light","Dark"};
+  int selected=Arrays.asList(values).indexOf(g.getString("theme","system"));
   new AlertDialog.Builder(this).setTitle("Theme").setSingleChoiceItems(labels,Math.max(0,selected),(dialog,which)->{
    dialog.dismiss();
-   if(!values[which].equals(g.getString("theme","light"))){rememberScroll();g.edit().putString("theme",values[which]).apply();recreate();}
+   if(!values[which].equals(g.getString("theme","system"))){rememberScroll();g.edit().putString("theme",values[which]).apply();recreate();}
   }).setNegativeButton("Cancel",null).show();
  }
  void appearance(){
   LinearLayout appearance=card(body,SURFACE);add(appearance,text("Appearance",23,INK,true));gap(appearance,8);
-  add(appearance,button((g.getString("theme","light").equals("dark")?"Dark":"Light"),v->chooseTheme()));
+  String theme=g.getString("theme","system");
+  add(appearance,button("dark".equals(theme)?"Dark":"light".equals(theme)?"Light":"Follow the system",v->chooseTheme()));
+  add(appearance,text(Palette.of(this,darkMode).dynamic?"Colours follow your wallpaper, as Android sets them.":"Colours follow the app's own scheme on this version of Android.",12,MUTED,false));
 
  }
  // MULTI-CARD: one card's own settings. Everything the device holds once — capture, the SMS app,
@@ -379,6 +400,10 @@ public class MainActivity extends Activity {
   }
   add(capture,text("Each card decides whether its own alerts are added, in that card's Settings.",12,MUTED,false));
   appearance();
+  LinearLayout everything=card(body,SURFACE);add(everything,text("Everything on this phone",23,INK,true));gap(everything,8);
+  add(everything,text("One file holding every card, its transactions and payments, its merchant mappings, its reward plan and its settings. Restore it after reinstalling and the app is as it was. Backups hold financial data, so keep them privately.",13,MUTED,false));
+  add(everything,button("Back up everything",v->backupEverything()));
+  add(everything,button("Restore everything",v->restoreEverything()));
   LinearLayout about=card(body,SURFACE);add(about,text("About",23,INK,true));gap(about,8);
   add(about,text("Cards Ledger "+appVersion()+"\nA multi-card fork of Live+ Ledger. Independent personal tracker, not affiliated with any bank.\n\nEach card keeps its own ledger, merchant mappings and reward plan on this phone. The app has no internet permission.",13,MUTED,false));
  }
@@ -448,9 +473,39 @@ public class MainActivity extends Activity {
   }
  }
  void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
+ // MULTI-CARD: the whole device in one file, so an uninstall is recoverable.
+ void backupEverything(){
+  startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE)
+   .putExtra(Intent.EXTRA_TITLE,"cards-ledger-"+LocalDate.now(ZoneId.of("Asia/Kolkata"))+".json"),51);
+ }
+ void restoreEverything(){
+  new AlertDialog.Builder(this).setTitle("Restore everything?")
+   .setMessage("This replaces every card on this phone, with its transactions, merchant mappings, reward plan and settings, by what the backup holds. Anything here that is not in the backup is lost. Capture stays off until you turn it on again.")
+   .setNegativeButton("Cancel",null)
+   .setPositiveButton("Choose file",(d,w)->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),52))
+   .show();
+ }
  void export(){Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"liveplus-backup-"+LocalDate.now()+".json");startActivityForResult(i,41);}
  void restore(){new AlertDialog.Builder(this).setTitle("Restore a backup").setMessage("Restore is available into an empty ledger. It restores transactions and settings. Capture stays off until you enable it again.").setNegativeButton("Cancel",null).setPositiveButton("Choose file",(d,w)->{if(!store.all().isEmpty()){toast("Export and erase existing data first.");return;}startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),42);}).show();}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;try{
+  // MULTI-CARD: 51 and 52 are the whole-device backup; 41 and 42 below are upstream's, one card.
+  if(req==51){
+   String text=Vault.encode(Cards.snapshot(this));
+   try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(text.getBytes(StandardCharsets.UTF_8));}
+   toast("Everything backed up");return;
+  }
+  if(req==52){
+   ByteArrayOutputStream buffer=new ByteArrayOutputStream();
+   try(InputStream in=getContentResolver().openInputStream(data.getData())){
+    byte[] chunk=new byte[8192];int n;
+    while((n=in.read(chunk))!=-1){buffer.write(chunk,0,n);if(buffer.size()>40_000_000)throw new Exception("File too large");}
+   }
+   Vault.Snapshot snapshot=Vault.decode(buffer.toString("UTF-8"));
+   Cards.apply(this,snapshot);
+   toast("Restored "+snapshot.cards.size()+(snapshot.cards.size()==1?" card":" cards")+" and "+snapshot.rowCount()+" entries. Turn capture on again.");
+   startActivity(new Intent(this,HomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+   finish();return;
+  }
   if(req==41){JSONObject o=new JSONObject();o.put("format","liveplus-ledger-v1");o.put("last4",p.getString("last4",""));o.put("day",day());o.put("cap",cap());o.put("periodSet",p.getBoolean("periodSet",false));o.put("myntra",p.getBoolean("myntra",false));o.put("transactions",store.exportRows());try(OutputStream s=getContentResolver().openOutputStream(data.getData())){s.write(o.toString(2).getBytes(StandardCharsets.UTF_8));}toast("Backup exported");}
   else if(req==42){if(!store.all().isEmpty())throw new Exception("Ledger must be empty");ByteArrayOutputStream buffer=new ByteArrayOutputStream();try(InputStream in=getContentResolver().openInputStream(data.getData())){byte[] chunk=new byte[8192];int n;while((n=in.read(chunk))!=-1){buffer.write(chunk,0,n);if(buffer.size()>10_000_000)throw new Exception("File too large");}}JSONObject o=new JSONObject(buffer.toString("UTF-8"));if(!o.getString("format").equals("liveplus-ledger-v1"))throw new Exception("Wrong format");JSONArray a=o.getJSONArray("transactions");if(a.length()>20000)throw new Exception("Too many rows");String four=o.getString("last4");int close=o.getInt("day");long max=o.getLong("cap");if(!four.matches("[0-9]{4}")||close<0||close>31||max<=0||max>10000000L)throw new Exception("Invalid settings");
    List<Engine.Tx> rows=new ArrayList<>();Set<Long> ids=new HashSet<>();Set<String> events=new HashSet<>();for(int i=0;i<a.length();i++){JSONObject v=a.getJSONObject(i);Engine.Tx x=new Engine.Tx();x.id=v.getLong("id");x.amount=v.getLong("amountPaise");x.merchant=v.getString("merchant");x.date=LocalDate.parse(v.getString("date")).toString();x.category=v.getInt("category");x.confirmed=v.getBoolean("confirmed");x.refund=v.getBoolean("refund");x.duplicate=v.getBoolean("duplicate");x.active=v.getBoolean("active");x.received=v.getLong("received");x.source=v.getString("source");x.event=v.optString("event","");x.linked=v.optString("linked","");if(x.id<=0||!ids.add(x.id)||x.amount<=0||x.amount>1000000000L||x.category<0||x.category>=Engine.CATEGORIES.length||x.merchant.length()>90||x.source.length()>100||(!x.event.isEmpty()&&!events.add(x.event)))throw new Exception("Invalid transaction");rows.add(x);}

@@ -29,7 +29,16 @@ public final class Alerts {
  }
  public static final class Match {
   public final int cardId; public final Engine.Parsed transaction;
-  Match(int cardId,Engine.Parsed transaction){this.cardId=cardId;this.transaction=transaction;}
+  /** True when this is money posted to the card rather than spent on it. */
+  public final boolean credit;
+  Match(int cardId,Engine.Parsed transaction){this(cardId,transaction,false);}
+  Match(int cardId,Engine.Parsed transaction,boolean credit){this.cardId=cardId;this.transaction=transaction;this.credit=credit;}
+ }
+ /** A credit read as a transaction, so one path records both kinds. */
+ static Engine.Parsed asTransaction(Credits.Posted posted){
+  Engine.Parsed parsed=new Engine.Parsed();
+  parsed.amount=posted.amount;parsed.date=posted.date;parsed.merchant=posted.note;parsed.refund=false;
+  return parsed;
  }
 
  /** The one card this alert belongs to, or null. Earlier cards in the grid win a tie, so an alert
@@ -50,7 +59,10 @@ public final class Alerts {
    if(!haystack.contains(fold(target.issuer)))continue;
    if(!senderMatches(senderField,target.senders))continue;
    Engine.Parsed parsed=parse(safeContext,body,target.last4,time,target.issuer);
-   if(parsed!=null)out.add(new Match(target.cardId,parsed));
+   if(parsed!=null){out.add(new Match(target.cardId,parsed));continue;}
+   // Upstream turns payments and credits away; this fork records them instead.
+   Credits.Posted posted=Credits.parse(safeContext,body,target.last4,time);
+   if(posted!=null)out.add(new Match(target.cardId,asTransaction(posted),true));
   }
   return out;
  }
@@ -106,8 +118,9 @@ public final class Alerts {
 
  /** One incoming SMS, matched to a card. */
  public static final class SmsMatch {
-  public final int cardId; public final SmsCapture.Candidate candidate;
-  SmsMatch(int cardId,SmsCapture.Candidate candidate){this.cardId=cardId;this.candidate=candidate;}
+  public final int cardId; public final SmsCapture.Candidate candidate; public final boolean credit;
+  SmsMatch(int cardId,SmsCapture.Candidate candidate){this(cardId,candidate,false);}
+  SmsMatch(int cardId,SmsCapture.Candidate candidate,boolean credit){this.cardId=cardId;this.candidate=candidate;this.credit=credit;}
  }
  /**
   * Routes one newly delivered SMS. Multipart assembly, timestamp checks and the replay
@@ -127,8 +140,26 @@ public final class Alerts {
    if(!accepts(first.sender,body.toString(),target))continue;
    SmsCapture.Candidate candidate=SmsCapture.collect(withGate(parts,target.issuer),target.last4,started,received,subscription);
    if(candidate!=null){name(candidate.transaction,body.toString());return new SmsMatch(target.cardId,candidate);}
+   SmsMatch posted=creditSms(parts,body.toString(),target,started,received,subscription);
+   if(posted!=null)return posted;
   }
   return null;
+ }
+ /**
+  * The credit path for an incoming SMS. {@link SmsCapture} assembles and fingerprints a purchase;
+  * a credit is never a purchase to it, so the same checks are made here and the fingerprint is
+  * built the same way under its own prefix.
+  */
+ private static SmsMatch creditSms(List<SmsCapture.Part> parts,String body,Target target,long started,long received,int subscription){
+  if(received<started||parts.size()>64)return null;
+  SmsCapture.Part first=parts.get(0);
+  for(SmsCapture.Part part:parts)
+   if(part==null||!part.sender.equals(first.sender)||part.sent<=0||part.sent>received+300000)return null;
+  if(body.length()>6000)return null;
+  Credits.Posted posted=Credits.parse(first.sender,body,target.last4,first.sent);
+  if(posted==null)return null;
+  String event=NotificationCapture.digest("credit-v1|"+subscription+"|"+first.sender+"|"+first.sent+"|"+body.replaceAll("\\s+"," ").trim());
+  return new SmsMatch(target.cardId,new SmsCapture.Candidate(asTransaction(posted),event,received),true);
  }
  /** The same parts with the bank token added to the sender, so upstream's own gate passes. */
  public static List<SmsCapture.Part> withGate(List<SmsCapture.Part> parts,String issuer){

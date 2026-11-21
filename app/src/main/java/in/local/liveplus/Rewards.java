@@ -30,6 +30,8 @@ public final class Rewards {
   public long cappedReward,cappedRewardBeforeCap,baseReward,reward;
   /** Headroom. {@code -1} when the plan cannot express it. */
   public long remainingSpend=-1,remainingReward=-1;
+  /** Money posted to the card in the period: payments, credits and reversals. */
+  public long credits;
   public long[] spendByCategory=new long[0];
   public final List<Line> lines=new ArrayList<>();
   public int review;
@@ -43,7 +45,8 @@ public final class Rewards {
   Totals t=new Totals();
   t.spendByCategory=new long[plan.count()];
   for(Engine.Tx x:rows){
-   if(!x.active)continue;
+   // Money posted to the card is not spending and earns nothing; it is counted on its own.
+   if(!x.active||Rows.credit(x))continue;
    LocalDate date=LocalDate.parse(x.date);
    if(date.isBefore(start)||date.isAfter(end))continue;
    if(x.refund){if(x.linked.isEmpty()){t.refunds+=x.amount;t.review++;}continue;}
@@ -93,6 +96,7 @@ public final class Rewards {
   else if(RewardPlan.CAP_REWARD.equals(plan.capBasis)&&single!=null&&single.pointsBased()&&single.points>0)
    t.remainingSpend=Math.max(0,plan.capAmount*single.blockPaise/single.points-t.cappedSpend);
   if(RewardPlan.CAP_REWARD.equals(plan.capBasis))t.remainingReward=Math.max(0,plan.capAmount-t.cappedReward);
+  t.credits=Rows.credits(rows,start,end);
   return t;
  }
 

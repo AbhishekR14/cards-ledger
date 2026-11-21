@@ -48,7 +48,10 @@ public class AlertsTest {
   check(route("AX-HSBCBK","OTP 123456 for a transaction of INR 500 on HSBC card ending 1234")==null,"an OTP is still rejected");
   check(route("AD-AXISBK","OTP 998877 is your Axis Bank one time password for card XX5678")==null,"another bank's OTP is rejected too");
   check(route("AD-AXISBK","Transaction of INR 500 on Axis Bank card XX5678 was declined")==null,"a declined purchase is rejected");
-  check(route("AD-AXISBK","Payment of INR 5000 received for Axis Bank card XX5678. Thank you.")==null,"a repayment is rejected");
+  // A repayment used to be thrown away. It is now recorded as money paid to the card.
+  Alerts.Match repaid=route("AD-AXISBK","Payment of INR 5000 received for Axis Bank card XX5678. Thank you.");
+  check(repaid!=null&&repaid.cardId==2&&repaid.credit,"a repayment is recorded as a credit, not discarded");
+  check(repaid.transaction.amount==500000,"the repayment keeps its amount");
   check(route("AD-AXISBK","Statement for Axis Bank card XX5678: amount due INR 5000")==null,"a statement notice is rejected");
   Alerts.Match refund=route("AD-AXISBK","Refund of INR 300 credited to Axis Bank Credit Card XX5678 at BLINKIT on 21-11-2026");
   check(refund!=null&&refund.transaction.refund&&refund.cardId==2,"a refund routes and is marked as one");

@@ -103,6 +103,37 @@ and upstream's built-in catalogue applies only to a plan whose categories are st
 Category order is the category numbering, and a transaction stores its number. Append new
 categories rather than reordering them.
 
+## Payments and credits
+
+Upstream recorded spending only, and its parser turns a repayment away on purpose. This fork
+keeps those too: a bill payment, a reversed charge or a cashback credit is stored in the same
+ledger, marked as money paid **to** the card.
+
+- They never count as spend and never earn a reward, whatever the plan says.
+- They never need review and never carry a category.
+- The card's Overview shows them on a **Paid to the card** line; Activity shows them with a minus
+  and the note the alert used ("Payment received", "Cashback credited").
+- A refund against a purchase is *not* a credit: upstream already records those and links them to
+  the purchase they reverse, which reduces that purchase's eligible spend.
+- Add one by hand with **Add purchase**, ticking "Money paid to the card, not spent".
+
+## Backing up everything
+
+A card's own Settings screen backs up that card, which is upstream's feature. **Settings → Back
+up everything**, on the home screen, writes one file with:
+
+- every card, with its number so its ledger is found again, its name, bank, sender filters,
+  colour and capture toggle;
+- every transaction, refund and credit, with its category, source and replay id;
+- every merchant mapping;
+- every reward plan, and each card's last four digits, statement day and cap;
+- the theme.
+
+**Restore everything** replaces what is on the phone with the file's contents, so the app comes
+back exactly as it was after an uninstall. Capture stays off until you turn it on again, as a
+restore should not start writing to ledgers on its own. The file is plain JSON holding financial
+data: keep it somewhere private.
+
 ## Card presets
 
 Rates below were read from the issuers' own pages on **21 November 2026**. Indian card terms move

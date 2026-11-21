@@ -26,7 +26,7 @@ public final class SmsReceiver extends BroadcastReceiver {
     // MULTI-CARD: the message is offered to each capturing card in grid order; the first whose
     // bank and card suffix both match keeps it, so it is never counted twice.
     Alerts.SmsMatch match=Alerts.routeSms(parts,started,received,subscription,Cards.targets(app));
-    if(match!=null)CaptureStore.save(app,match.cardId,match.candidate.transaction,match.candidate.event,match.candidate.received,false,"SMS");
+    if(match!=null)CaptureStore.save(app,match.cardId,match.candidate.transaction,match.candidate.event,match.candidate.received,false,"SMS",match.credit);
    }catch(RuntimeException ignored){p.edit().putBoolean("captureError",true).apply();}finally{pending.finish();}
   });}catch(RejectedExecutionException ignored){pending.finish();p.edit().putBoolean("captureError",true).apply();}
  }

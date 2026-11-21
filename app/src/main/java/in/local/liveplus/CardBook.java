@@ -68,6 +68,12 @@ public final class CardBook {
   }
   throw new IllegalArgumentException("That card is no longer in the list.");
  }
+ /** Appends a card keeping the number it already had, for a restore. */
+ public void restore(Card card){
+  if(cards.size()>=MAX_CARDS)throw new IllegalArgumentException("This app tracks up to "+MAX_CARDS+" cards.");
+  if(card.id<=0||get(card.id)!=null)throw new IllegalArgumentException("That card number is already taken.");
+  cards.add(card);
+ }
  public void remove(int id){
   for(Iterator<Card> each=cards.iterator();each.hasNext();)if(each.next().id==id){each.remove();return;}
  }
