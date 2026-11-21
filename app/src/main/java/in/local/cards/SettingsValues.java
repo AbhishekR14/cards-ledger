@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 /** Validation before an automatic settings write. Invalid edits never replace saved values. */
 public final class SettingsValues {

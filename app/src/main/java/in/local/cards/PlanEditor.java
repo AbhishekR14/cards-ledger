@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import android.app.AlertDialog;
 import android.content.*;
@@ -10,8 +10,7 @@ import java.util.*;
  * Edits one card's {@link RewardPlan}: its categories and rates, the cap they share, and whether
  * it pays cashback or points. Plans can also be pasted in or copied out as JSON.
  *
- * <p>Drawn with {@link MainActivity}'s own helpers so it matches the rest of the app, and new to
- * this fork, so it never conflicts with an upstream change.
+ * <p>Drawn with {@link MainActivity}'s own helpers so it matches the rest of the app.
  */
 final class PlanEditor {
  private final MainActivity host;

@@ -1,4 +1,4 @@
-import in.local.liveplus.SettingsValues;
+import in.local.cards.SettingsValues;
 
 public class SettingsValuesTest {
  static int checks;

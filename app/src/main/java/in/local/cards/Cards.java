@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import android.content.*;
 import java.util.*;
@@ -6,23 +6,22 @@ import java.util.*;
 /**
  * Preferences-backed access to the cards on this device.
  *
- * <p>Three kinds of state live in three places, which is what keeps this fork's diff against
- * upstream small:
+ * <p>Three kinds of state live in three places:
  *
  * <ul>
  * <li><b>Global</b> ({@code app}): capture on/off, the chosen SMS app, the notification replay
  *     cache, the theme — everything the device holds once, whatever the card. This is what
- *     {@link Store#prefs(Context)} returns, so upstream's capture code already reads it.</li>
+ *     {@link Store#prefs(Context)} returns, so the capture code reads it directly.</li>
  * <li><b>Per card</b> ({@code settings}, {@code settings-2}, …): last four digits, statement day,
- *     cap and reward plan, written by the screens upstream owns.</li>
+ *     cap and reward plan, written by the card's own Settings screen.</li>
  * <li><b>The registry</b> (one key in the global file): names, banks and order of the grid.</li>
  * </ul>
  *
- * <p>Card 1 uses the original {@code ledger.db} and {@code settings} names, so an install that
- * only ever had the Live+ card keeps its ledger with no migration.
+ * <p>Card 1 uses the {@code ledger.db} and {@code settings} names the single-card app used, so
+ * a ledger carried over from it opens with no migration.
  */
 public final class Cards {
- public static final String EXTRA_CARD="in.local.liveplus.CARD";
+ public static final String EXTRA_CARD="in.local.cards.CARD";
  public static final String GLOBAL="app",REGISTRY="cards";
  /** Keys that belong to the device rather than to one card. */
  private static final String[] SHARED={"theme","capture","started","captureEdition","lastCaptured","captureError"};

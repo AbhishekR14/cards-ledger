@@ -53,7 +53,7 @@ From the repository root:
   -BuildTools 'C:/path/to/Android/Sdk/build-tools/35.0.0'
 ```
 
-Or set `JAVA_HOME` and `ANDROID_SDK_ROOT` (or `ANDROID_HOME`) and run `./tools/build-all.ps1`. Explicit paths take priority. Outputs: `build/LivePlus-Ledger-Notifications.apk`, `build/LivePlus-Ledger-SMS.apk` and `build/SHA256SUMS.txt`.
+Or set `JAVA_HOME` and `ANDROID_SDK_ROOT` (or `ANDROID_HOME`) and run `./tools/build-all.ps1`. Explicit paths take priority. Outputs: `build/Cards-Ledger-Notifications.apk`, `build/Cards-Ledger-SMS.apk` and `build/SHA256SUMS.txt`.
 
 Build one using `./build.ps1 -Edition notifications` (default) or `./build.ps1 -Edition sms` with the same tool arguments; `-Output` changes its APK path. Each build runs synthetic tests, compiles resources/shared Java plus exactly one edition's Java, converts with D8, aligns/signs and verifies the APK. Intermediates are under `build/`.
 
@@ -73,7 +73,7 @@ Edition switching preserves ledger/settings/mappings but turns capture off and c
 
 ## Settings and presentation
 
-Both manifests use the application label Live+ Ledger, including the notification-access service label. The installed UI displays only versionName (for example, 1.0.3). The integer versionCode stays internal for Android update ordering. The UI has no edition names, Save settings control or capture diagnostics. Temporary diagnostic reports from earlier builds are removed on open. Keep download distinctions in README/install/release docs.
+Both manifests use the application label Cards Ledger, including the notification-access service label. The installed UI displays only versionName (for example, 1.0.3). The integer versionCode stays internal for Android update ordering. The UI has no edition names, Save settings control or capture diagnostics. Temporary diagnostic reports from earlier builds are removed on open. Keep download distinctions in README/install/release docs.
 
 Text settings are validated by SettingsValues before writes. Valid changes are debounced for 650 ms and flushed on field exit, navigation, backgrounding and state saving. Invalid drafts keep the last valid stored value. Card changes are rejected for a populated ledger. Switches, merchant-source choice and promotion preference apply immediately. Capture activation validates card inputs and explicitly requests missing access. Returning from notification Settings activates only a user-requested pending capture action. Typing cannot trigger a permission prompt. Transaction/mapping Save actions remain explicit.
 

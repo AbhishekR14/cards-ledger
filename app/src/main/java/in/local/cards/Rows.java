@@ -1,18 +1,16 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import java.util.*;
 
 /**
- * A ledger row: upstream's {@link Engine.Tx} plus what this fork records beyond a purchase.
+ * A ledger row: an {@link Engine.Tx} plus what the app records beyond a purchase.
  *
- * <p>Upstream only ever recorded spending, so its parser rejects a payment or a credit outright.
- * This fork keeps them, because a card's statement is not only what you spent. A credit is held
- * in the same table and read back as a {@link Row}, which is an {@code Engine.Tx}, so every piece
- * of upstream's code still handles it — the calculations here simply leave credits out of spend
- * and rewards.
+ * <p>The purchase parser rejects a payment or a credit outright, because it reads spending. The
+ * app keeps them anyway, since a card's statement is not only what you spent. A credit is held in
+ * the same table and read back as a {@link Row}, which is an {@code Engine.Tx}, so every piece of
+ * code that handles a purchase still handles it; the calculations decide what a credit counts as.
  *
- * <p>{@code Engine.Tx} itself is upstream's and is not edited, so the extra field lives in this
- * subclass and is read through {@link #credit(Engine.Tx)}.
+ * <p>The extra field lives in this subclass and is read through {@link #credit(Engine.Tx)}.
  */
 public final class Rows {
  private Rows(){}

@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import android.app.*;
 import android.content.*;
@@ -11,13 +11,11 @@ import android.view.*;
 import android.widget.*;
 import java.time.*;
 import java.util.*;
-import in.local.cards.R;
 
 /**
  * The card grid: one tile per credit card, plus a tile to add another.
  *
- * <p>Tapping a tile opens {@link MainActivity} for that card, which is upstream's ledger screen
- * scoped to one card. This screen and everything it draws are new to this fork.
+ * <p>Tapping a tile opens {@link MainActivity}, the ledger screen, scoped to that card.
  */
 public class HomeActivity extends Activity {
  int MINT=Color.rgb(185,237,204),ON_ACCENT=Color.rgb(20,45,53),ON_TILE=Color.rgb(185,237,204),ON_NOTICE=Color.BLACK;
@@ -39,7 +37,7 @@ public class HomeActivity extends Activity {
  }
  @Override public void onResume(){
   super.onResume();
-  IntentFilter filter=new IntentFilter("in.local.liveplus.CHANGED");
+  IntentFilter filter=new IntentFilter("in.local.cards.CHANGED");
   if(Build.VERSION.SDK_INT>=33)registerReceiver(changed,filter,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changed,filter);
   if(darkMode!=Palette.dark(this,g.getString("theme","system"))){recreate();return;}
   draw();

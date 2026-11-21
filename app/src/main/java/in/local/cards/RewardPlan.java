@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import java.util.*;
 
@@ -266,7 +266,7 @@ public final class RewardPlan {
  }
  private static final String EXCLUDED="Excluded";
  /**
-  * Plans for the cards this fork's author carries. Rates were read from the issuers' own pages on
+  * Plans for the cards this app's author carries. Rates were read from the issuers' own pages on
   * 21 November 2026 and the terms move often, so a card's Settings screen is the authority: check
   * the plan against your own statement and edit it there. docs/MULTI-CARD.md records what is
   * solid and what is not.

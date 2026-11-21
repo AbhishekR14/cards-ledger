@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import android.content.*;
 import android.content.pm.*;

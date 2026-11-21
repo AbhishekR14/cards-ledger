@@ -1,10 +1,10 @@
 # Choose your capture edition
 
-Live+ Ledger has two APK editions. Both appear on the phone as **Live+ Ledger**, without edition labels. Download names distinguish the access methods. Choose the access method you are comfortable granting; tracking, cashback estimates, merchant mappings, review, manual entry, Paste alert and backups work in both.
+Cards Ledger has two APK editions. Both appear on the phone as **Cards Ledger**, without edition labels. Download names distinguish the access methods. Choose the access method you are comfortable granting; tracking, cashback estimates, merchant mappings, review, manual entry, Paste alert and backups work in both.
 
 | | Notifications edition | SMS edition |
 | --- | --- | --- |
-| APK | [LivePlus-Ledger-Notifications.apk](https://github.com/chetanatole/hsbc-liveplus-ledger/releases/latest/download/LivePlus-Ledger-Notifications.apk) | [LivePlus-Ledger-SMS.apk](https://github.com/chetanatole/hsbc-liveplus-ledger/releases/latest/download/LivePlus-Ledger-SMS.apk) |
+| APK | [Cards-Ledger-Notifications.apk](https://github.com/AbhishekR14/cards-ledger#build-and-test) | [Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk) |
 | Access requested | Android notification access | Android `RECEIVE_SMS` permission |
 | Source | New notifications from one selected SMS messaging app | New incoming SMS delivered by Android while capture is enabled |
 | Reads existing SMS / scans inbox | **No** | **No** |
@@ -16,7 +16,7 @@ Live+ Ledger has two APK editions. Both appear on the phone as **Live+ Ledger**,
 
 ## If you prefer not to grant SMS permission
 
-Choose **Notifications**. It requests no SMS permission and cannot query your stored messages. Notification access is itself broad: Android can deliver notifications from many apps, but Live+ Ledger filters to the one selected SMS app before inspecting content, then checks HSBC and your saved card suffix. It saves transaction details and discards other content.
+Choose **Notifications**. It requests no SMS permission and cannot query your stored messages. Notification access is itself broad: Android can deliver notifications from many apps, but Cards Ledger filters to the one selected SMS app before inspecting content, then checks HSBC and your saved card suffix. It saves transaction details and discards other content.
 
 Android 15+ may hide notification content from notification listeners when an OTP is detected. A later purchase can be hidden while it is grouped with that unread OTP. Clear notifications for that conversation before subsequent alerts, keep transaction notification text enabled, and use Paste alert for an already missed purchase after checking for an existing entry. Clearing notifications does not recover a missed purchase automatically. This is an Android content restriction, not a parser or battery setting. [Android OTP redaction](https://developer.android.com/about/versions/15/behavior-changes-all#otp-redaction)
 

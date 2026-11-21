@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import android.content.*;
 
@@ -7,12 +7,12 @@ public final class CaptureStore {
  public static synchronized int save(Context context,Engine.Parsed parsed,String event,long received,boolean possibleDuplicate,String source){
   return save(context,Cards.book(context).isEmpty()?1:Cards.book(context).at(0).id,parsed,event,received,possibleDuplicate,source);
  }
- // MULTI-CARD: the alert router picks the card; the transaction is written to that card's ledger
+ // the alert router picks the card; the transaction is written to that card's ledger
  // with that card's own merchant mappings.
  public static synchronized int save(Context context,int cardId,Engine.Parsed parsed,String event,long received,boolean possibleDuplicate,String source){
   return save(context,cardId,parsed,event,received,possibleDuplicate,source,false);
  }
- // MULTI-CARD: a credit is money posted to the card, so it is stored without a reward category
+ // a credit is money posted to the card, so it is stored without a reward category
  // and left out of spending.
  public static synchronized int save(Context context,int cardId,Engine.Parsed parsed,String event,long received,boolean possibleDuplicate,String source,boolean credit){
   try(Store store=Cards.store(context,cardId)){
@@ -27,8 +27,8 @@ public final class CaptureStore {
     if(existing.event.equals(x.event))return 2;
     if(!credit&&!existing.refund&&!x.refund&&existing.active&&existing.amount==x.amount&&Math.abs(existing.received-x.received)<=120000&&Engine.key(existing.merchant).equals(Engine.key(x.merchant))){x.duplicate=true;x.confirmed=false;}
    }
-   // MULTI-CARD: capture state is device-wide, so the marker goes to the global file.
-   if(store.save(x)>0){Store.prefs(context).edit().putLong("lastCaptured",System.currentTimeMillis()).apply();context.sendBroadcast(new Intent("in.local.liveplus.CHANGED").setPackage(context.getPackageName()).putExtra(Cards.EXTRA_CARD,cardId));return 1;}
+   // capture state is device-wide, so the marker goes to the global file.
+   if(store.save(x)>0){Store.prefs(context).edit().putLong("lastCaptured",System.currentTimeMillis()).apply();context.sendBroadcast(new Intent("in.local.cards.CHANGED").setPackage(context.getPackageName()).putExtra(Cards.EXTRA_CARD,cardId));return 1;}
   }catch(Exception ignored){}
   Store.prefs(context).edit().putBoolean("captureError",true).apply();return 0;
  }

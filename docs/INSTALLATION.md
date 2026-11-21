@@ -2,16 +2,16 @@
 
 ## Choose and install an APK
 
-From release **1.0.3**, choose **one** APK from [GitHub Releases](https://github.com/chetanatole/hsbc-liveplus-ledger/releases), or [build it](DEVELOPMENT.md):
+From release **1.0.3**, choose **one** APK from [GitHub Releases](https://github.com/AbhishekR14/cards-ledger/releases), or [build it](DEVELOPMENT.md):
 
-- **[LivePlus-Ledger-Notifications.apk](https://github.com/chetanatole/hsbc-liveplus-ledger/releases/latest/download/LivePlus-Ledger-Notifications.apk):** choose this if you prefer not to grant SMS permission. It uses notification access for one SMS messaging app.
-- **[LivePlus-Ledger-SMS.apk](https://github.com/chetanatole/hsbc-liveplus-ledger/releases/latest/download/LivePlus-Ledger-SMS.apk):** choose this if you accept permission to receive new incoming SMS. It has no notification access or existing-inbox access.
+- **[Cards-Ledger-Notifications.apk](https://github.com/AbhishekR14/cards-ledger#build-and-test):** choose this if you prefer not to grant SMS permission. It uses notification access for one SMS messaging app.
+- **[Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk):** choose this if you accept permission to receive new incoming SMS. It has no notification access or existing-inbox access.
 
-**Neither edition reads existing SMS, scans your inbox or sends messages.** Read the [edition comparison](EDITIONS.md) and [privacy policy](../PRIVACY.md). Older releases use `LivePlus-Ledger.apk` for the notification-based app.
+**Neither edition reads existing SMS, scans your inbox or sends messages.** Read the [edition comparison](EDITIONS.md) and [privacy policy](../PRIVACY.md). Older releases use `Cards-Ledger.apk` for the notification-based app.
 
 1. Open the chosen APK on an Android 8.0+ phone.
 2. If prompted, allow installation from the browser/file manager used to open it. This is called sideloading: installing outside an app store.
-3. Open Live+ Ledger after installation and go to Settings. Both downloads use the name Live+ Ledger on the phone. The release version appears in Settings.
+3. Open Cards Ledger after installation and go to Settings. Both downloads use the name Cards Ledger on the phone. The release version appears in Settings.
 
 Both editions have the same ledger features. Automatic capture is optional; manual entry and Paste alert work without either capture permission.
 
@@ -40,10 +40,10 @@ Settings apply automatically. Valid text edits apply after a short pause or when
 
 1. In **Settings → Automatic capture**, choose **one SMS messaging app**. The installed default is preselected when available; bank apps and unrelated apps are not offered.
 2. Turn on **Capture new transaction notifications**.
-3. Read the disclosure and enable Live+ Ledger in Android Settings when prompted. You can also open access settings with **Enable Android notification access**. Capture remains off if you cancel or do not grant access.
+3. Read the disclosure and enable Cards Ledger in Android Settings when prompted. You can also open access settings with **Enable Android notification access**. Capture remains off if you cancel or do not grant access.
 4. Keep transaction notification text enabled in the selected messaging app. No SMS permission is requested.
 
-If Android restricts notification access, open **Settings → Apps → Live+ Ledger → ⋮ → Allow restricted settings**, then try granting notification access again. This is separate from Play Protect scanning and does not grant SMS permission.
+If Android restricts notification access, open **Settings → Apps → Cards Ledger → ⋮ → Allow restricted settings**, then try granting notification access again. This is separate from Play Protect scanning and does not grant SMS permission.
 
 **Unread OTP warning:** Android may hide later transaction notifications grouped with an OTP. Clear notifications for that conversation before the next alert. Add an already missed purchase with Paste alert or manually after checking for an existing entry. Clearing the shade does not backfill a missed purchase. [Android OTP redaction](https://developer.android.com/about/versions/15/behavior-changes-all#otp-redaction)
 
@@ -53,7 +53,7 @@ If Android restricts notification access, open **Settings → Apps → Live+ Led
 2. Read **Allow new SMS capture?** and choose **Continue** if you accept incoming-SMS access, then approve Android's permission request. If declined or cancelled, capture stays off.
 3. Capture starts after permission is granted. If you granted permission separately using **Enable SMS permission**, turn on the capture switch afterward.
 
-Android's permission covers incoming SMS from all senders. Live+ Ledger filters locally for HSBC and your saved suffix, ignores OTPs/unrelated messages and saves only transaction details. **No `READ_SMS`, existing-message scan, historical import or SMS sending is included.** You do not select a messaging app or grant notification access; your default SMS app is unchanged. Only SMS are supported, not RCS/MMS or bank-app notifications.
+Android's permission covers incoming SMS from all senders. Cards Ledger filters locally for HSBC and your saved suffix, ignores OTPs/unrelated messages and saves only transaction details. **No `READ_SMS`, existing-message scan, historical import or SMS sending is included.** You do not select a messaging app or grant notification access; your default SMS app is unchanged. Only SMS are supported, not RCS/MMS or bank-app notifications.
 
 `RECEIVE_SMS` is a restricted permission: the installer must allowlist it before the user can grant it. A denied request, missing prompt or unavailable permission can reflect Android/installer/device policy. Check App info → Permissions; the app cannot grant permission itself. If unavailable, use the Notifications edition, Paste alert or manual entry. **Allow restricted settings** for notification access is not a substitute for SMS permission allowlisting. [Android SMS permission](https://developer.android.com/reference/android/Manifest.permission#RECEIVE_SMS)
 
@@ -75,7 +75,7 @@ Direct SMS delivery avoids notification grouping. Android's SMS OTP protection s
 - Keep capture enabled and its edition-specific access granted. The app screen does not normally need to remain open. Open it after installation or a force-stop.
 - Notifications edition: check the selected SMS app, card suffix and notification text. Already-visible notifications are baselined when capture starts/reconnects, and grouped history is tracked to prevent replay. A repeated identical flat alert may be retained as a possible duplicate for review.
 - SMS edition: no notification-source selection is needed. Check SMS permission and distinguish incoming SMS from RCS/MMS. Messages not delivered by Android cannot be recovered by this edition; it never scans the inbox.
-- If background capture fails, check **Android Settings → Apps → Live+ Ledger → Battery → Unrestricted / Allow background activity** and sleeping/deep-sleep lists, where available. Unrestricted battery access cannot recover content Android withholds. Menus vary by phone. [Android background restrictions](https://developer.android.com/topic/performance/background-optimization)
+- If background capture fails, check **Android Settings → Apps → Cards Ledger → Battery → Unrestricted / Allow background activity** and sleeping/deep-sleep lists, where available. Unrestricted battery access cannot recover content Android withholds. Menus vary by phone. [Android background restrictions](https://developer.android.com/topic/performance/background-optimization)
 - Review amount, merchant, date and category against the original message. Merchant suggestions do not reveal the bank's actual MCC. Add a missed purchase manually or with Paste alert after checking for an existing entry.
 
 ## Updates, edition switching and changing phones

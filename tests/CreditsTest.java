@@ -1,6 +1,6 @@
-import in.local.liveplus.Alerts;
-import in.local.liveplus.Credits;
-import in.local.liveplus.Engine;
+import in.local.cards.Alerts;
+import in.local.cards.Credits;
+import in.local.cards.Engine;
 import java.time.*;
 import java.util.*;
 
@@ -50,12 +50,12 @@ public class CreditsTest {
   check(spend!=null&&!spend.credit,"a purchase is still a purchase");
 
   // Through the incoming-SMS path, which assembles and fingerprints the message.
-  Alerts.SmsMatch sms=Alerts.routeSms(Arrays.asList(new in.local.liveplus.SmsCapture.Part("AD-ICICIB","Payment of INR 1,000.00 received on your ICICI Bank Credit Card XX1001.",NOW)),NOW-1000,NOW,-1,cards);
+  Alerts.SmsMatch sms=Alerts.routeSms(Arrays.asList(new in.local.cards.SmsCapture.Part("AD-ICICIB","Payment of INR 1,000.00 received on your ICICI Bank Credit Card XX1001.",NOW)),NOW-1000,NOW,-1,cards);
   check(sms!=null&&sms.credit&&sms.candidate.transaction.amount==100000,"a credit arrives through the SMS path");
   check(!sms.candidate.event.isEmpty(),"a credit carries a replay fingerprint");
-  Alerts.SmsMatch same=Alerts.routeSms(Arrays.asList(new in.local.liveplus.SmsCapture.Part("AD-ICICIB","Payment of INR 1,000.00 received on your ICICI Bank Credit Card XX1001.",NOW)),NOW-1000,NOW,-1,cards);
+  Alerts.SmsMatch same=Alerts.routeSms(Arrays.asList(new in.local.cards.SmsCapture.Part("AD-ICICIB","Payment of INR 1,000.00 received on your ICICI Bank Credit Card XX1001.",NOW)),NOW-1000,NOW,-1,cards);
   check(sms.candidate.event.equals(same.candidate.event),"the same message fingerprints the same way, so it is not added twice");
-  check(Alerts.routeSms(Arrays.asList(new in.local.liveplus.SmsCapture.Part("AD-ICICIB","Payment of INR 1,000.00 received on your ICICI Bank Credit Card XX1001.",NOW)),NOW+9000,NOW,-1,cards)==null,
+  check(Alerts.routeSms(Arrays.asList(new in.local.cards.SmsCapture.Part("AD-ICICIB","Payment of INR 1,000.00 received on your ICICI Bank Credit Card XX1001.",NOW)),NOW+9000,NOW,-1,cards)==null,
    "a credit older than the capture start is ignored");
   return checks;
  }

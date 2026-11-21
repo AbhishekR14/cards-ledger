@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import android.app.Notification;
 import android.content.*;
@@ -35,7 +35,7 @@ public class AlertListener extends NotificationListenerService {
   try{
    StatusBarNotification[] active=getActiveNotifications();if(active==null)return;
    Set<String> sources=Collections.singleton(SmsApps.selected(this));long started=p.getLong("started",Long.MAX_VALUE);
-   // MULTI-CARD: each capturing card keeps its own replay baseline for the conversation.
+   // each capturing card keeps its own replay baseline for the conversation.
    List<Alerts.Target> targets=Cards.targets(this);
    for(StatusBarNotification sbn:active){
     if(!sources.contains(sbn.getPackageName()))continue;
@@ -55,14 +55,14 @@ public class AlertListener extends NotificationListenerService {
   long started=p.getLong("started",Long.MAX_VALUE);if(sbn.getPostTime()<started)return;
   try{
    NotificationCapture.Envelope input=envelope(sbn);
-   // MULTI-CARD: the alert is offered to each capturing card in grid order. Only the card whose
+   // the alert is offered to each capturing card in grid order. Only the card whose
    // bank and card suffix match claims it, so a purchase is never recorded twice.
    for(Alerts.Target target:Cards.targets(this)){
     if(!Alerts.accepts(input,target))continue;
     String key=cacheKey(input,target.cardId);
     NotificationCapture.Batch batch=NotificationCapture.collect(Alerts.withGate(input,target.issuer),target.last4,started,NotificationCapture.State.decode(p.getString(key,null)));
     boolean claimed=false;
-    // MULTI-CARD: fill in a merchant upstream's parser could not read, but only when this alert
+    // fill in a merchant upstream's parser could not read, but only when this alert
     // held one transaction, so a grouped conversation cannot lend its merchant to another.
     if(batch.candidates.size()==1)Alerts.name(batch.candidates.get(0).transaction,input.bigText+" "+input.text);
     for(NotificationCapture.Candidate candidate:batch.candidates){
@@ -70,7 +70,7 @@ public class AlertListener extends NotificationListenerService {
     }
     saveSnapshot(p,key,batch.state);
     if(claimed)return;
-    // MULTI-CARD: a payment or credit is never a purchase to upstream's reader, so it is looked
+    // a payment or credit is never a purchase to upstream's reader, so it is looked
     // for separately. The event digest keeps a reposted notification from being added twice.
     Credits.Posted posted=Credits.parse(input.title+" "+input.source,input.bigText+" "+input.text,target.last4,input.posted);
     if(posted!=null){
@@ -81,13 +81,13 @@ public class AlertListener extends NotificationListenerService {
   }catch(RuntimeException ignored){p.edit().putBoolean("captureError",true).apply();}
  }
  @Override public void onNotificationRemoved(StatusBarNotification sbn){
-  // MULTI-CARD: drop every card's baseline for the conversation that went away.
+  // drop every card's baseline for the conversation that went away.
   String key="capture_seen_"+NotificationCapture.digest(sbn.getPackageName()+"|"+sbn.getKey());
   SharedPreferences.Editor edit=Store.prefs(this).edit().remove(key);
   for(CardBook.Card card:Cards.book(this).cards())edit.remove(key+"-"+card.id);
   edit.apply();
  }
- // MULTI-CARD: one baseline per conversation and card. The prefix stays upstream's, so the
+ // one baseline per conversation and card. The prefix stays upstream's, so the
  // pruning in saveSnapshot still finds these.
  private static String cacheKey(NotificationCapture.Envelope envelope,int cardId){
   return NotificationCapture.cacheKey(envelope)+"-"+cardId;

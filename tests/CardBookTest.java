@@ -1,4 +1,4 @@
-import in.local.liveplus.CardBook;
+import in.local.cards.CardBook;
 
 public class CardBookTest {
  static int checks;

@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import java.util.*;
 import java.util.regex.*;
@@ -60,7 +60,7 @@ public final class Alerts {
    if(!senderMatches(senderField,target.senders))continue;
    Engine.Parsed parsed=parse(safeContext,body,target.last4,time,target.issuer);
    if(parsed!=null){out.add(new Match(target.cardId,parsed));continue;}
-   // Upstream turns payments and credits away; this fork records them instead.
+   // The purchase parser turns payments and credits away; they are read separately.
    Credits.Posted posted=Credits.parse(safeContext,body,target.last4,time);
    if(posted!=null)out.add(new Match(target.cardId,asTransaction(posted),true));
   }
@@ -71,7 +71,7 @@ public final class Alerts {
  public static String gate(String context,String issuer){
   return (context==null?"":context)+" "+(issuer==null?"":issuer)+" HSBC";
  }
- /** Upstream's parser, then this fork's merchant fallbacks for banks that word alerts their own way. */
+ /** The purchase parser, then merchant fallbacks for banks that word alerts their own way. */
  public static Engine.Parsed parse(String context,String body,String last4,long time,String issuer){
   Engine.Parsed parsed=Engine.parse(gate(context,issuer),body,last4,time);
   if(parsed!=null)name(parsed,body);

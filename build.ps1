@@ -14,7 +14,6 @@ $sdkRoot = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { $env:ANDR
 if (!$AndroidJar -and $sdkRoot) { $AndroidJar = Join-Path $sdkRoot 'platforms/android-35/android.jar' }
 if (!$BuildTools -and $sdkRoot) { $BuildTools = Join-Path $sdkRoot 'build-tools/35.0.0' }
 if (!$JavaHome -or !$AndroidJar -or !$BuildTools) { throw 'Pass build tool paths or set JAVA_HOME and ANDROID_SDK_ROOT / ANDROID_HOME.' }
-# MULTI-CARD: the app ships as Cards Ledger; its Java package stays in.local.liveplus.
 if (!$Output) { $Output = Join-Path $PSScriptRoot ("build/Cards-Ledger-" + $(if ($Edition -eq "sms") { "SMS" } else { "Notifications" }) + ".apk") }
 $Output = [IO.Path]::GetFullPath($Output)
 foreach ($required in @("$JavaHome/bin/javac.exe", "$JavaHome/bin/java.exe", "$JavaHome/bin/jar.exe", "$JavaHome/bin/keytool.exe", $AndroidJar, "$BuildTools/aapt2.exe", "$BuildTools/zipalign.exe", "$BuildTools/lib/d8.jar", "$BuildTools/lib/apksigner.jar", "$BuildTools/core-lambda-stubs.jar")) {
@@ -25,7 +24,7 @@ $main = Join-Path $PSScriptRoot 'app/src/main'
 $editionSources = Join-Path $PSScriptRoot "app/src/$Edition/java"
 New-Item -ItemType Directory -Force -Path "$build/classes","$build/dex","$build/res","$build/generated","$build/test",(Split-Path -Parent $Output) | Out-Null
 Run-Checked "$JavaHome/bin/javac.exe" @('-encoding','UTF-8','-source','8','-target','8','-Xlint:-options','-d',"$build/test","$PSScriptRoot/tools/Compile.java")
-Run-Checked "$JavaHome/bin/javac.exe" @('-encoding','UTF-8','-source','8','-target','8','-Xlint:-options','-d',"$build/test","$main/java/in/local/liveplus/Engine.java","$main/java/in/local/liveplus/NotificationCapture.java","$main/java/in/local/liveplus/SmsCapture.java","$PSScriptRoot/tests/EngineTest.java","$PSScriptRoot/tests/NotificationCaptureTest.java","$PSScriptRoot/tests/SmsCaptureTest.java","$main/java/in/local/liveplus/SettingsValues.java","$PSScriptRoot/tests/SettingsValuesTest.java","$main/java/in/local/liveplus/Json.java","$main/java/in/local/liveplus/RewardPlan.java","$main/java/in/local/liveplus/Rewards.java","$main/java/in/local/liveplus/CardBook.java","$main/java/in/local/liveplus/Alerts.java","$main/java/in/local/liveplus/Rows.java","$main/java/in/local/liveplus/Credits.java","$main/java/in/local/liveplus/Vault.java","$PSScriptRoot/tests/JsonTest.java","$PSScriptRoot/tests/RewardPlanTest.java","$PSScriptRoot/tests/RewardsTest.java","$PSScriptRoot/tests/CardBookTest.java","$PSScriptRoot/tests/AlertsTest.java","$PSScriptRoot/tests/CreditsTest.java","$PSScriptRoot/tests/VaultTest.java","$PSScriptRoot/tests/MultiCardTest.java")
+Run-Checked "$JavaHome/bin/javac.exe" @('-encoding','UTF-8','-source','8','-target','8','-Xlint:-options','-d',"$build/test","$main/java/in/local/cards/Engine.java","$main/java/in/local/cards/NotificationCapture.java","$main/java/in/local/cards/SmsCapture.java","$PSScriptRoot/tests/EngineTest.java","$PSScriptRoot/tests/NotificationCaptureTest.java","$PSScriptRoot/tests/SmsCaptureTest.java","$main/java/in/local/cards/SettingsValues.java","$PSScriptRoot/tests/SettingsValuesTest.java","$main/java/in/local/cards/Json.java","$main/java/in/local/cards/RewardPlan.java","$main/java/in/local/cards/Rewards.java","$main/java/in/local/cards/CardBook.java","$main/java/in/local/cards/Alerts.java","$main/java/in/local/cards/Rows.java","$main/java/in/local/cards/Credits.java","$main/java/in/local/cards/Vault.java","$PSScriptRoot/tests/JsonTest.java","$PSScriptRoot/tests/RewardPlanTest.java","$PSScriptRoot/tests/RewardsTest.java","$PSScriptRoot/tests/CardBookTest.java","$PSScriptRoot/tests/AlertsTest.java","$PSScriptRoot/tests/CreditsTest.java","$PSScriptRoot/tests/VaultTest.java","$PSScriptRoot/tests/MultiCardTest.java")
 Run-Checked "$JavaHome/bin/java.exe" @('-cp',"$build/test",'EngineTest')
 Run-Checked "$JavaHome/bin/java.exe" @('-cp',"$build/test",'MultiCardTest')
 # Derive the SMS manifest from the common app/version metadata. No listener or app queries survive.
@@ -38,8 +37,7 @@ if ($Edition -eq 'sms') {
  $permission.SetAttribute('name',$androidNs,'android.permission.RECEIVE_SMS') | Out-Null
  $manifest.manifest.AppendChild($permission) | Out-Null
  $receiver = $manifest.CreateElement('receiver')
- # MULTI-CARD: written in full because the manifest package differs from the Java package.
- $receiver.SetAttribute('name',$androidNs,'in.local.liveplus.SmsReceiver') | Out-Null
+ $receiver.SetAttribute('name',$androidNs,'.SmsReceiver') | Out-Null
  $receiver.SetAttribute('permission',$androidNs,'android.permission.BROADCAST_SMS') | Out-Null
  $receiver.SetAttribute('exported',$androidNs,'true') | Out-Null
  $filter = $manifest.CreateElement('intent-filter');$action = $manifest.CreateElement('action')
@@ -65,10 +63,10 @@ $passfile=Join-Path $signing 'key-password.txt'
 if (!(Test-Path -LiteralPath $key)) {
  $secret=[guid]::NewGuid().ToString('N')
  [IO.File]::WriteAllText($passfile,$secret)
- Run-Checked "$JavaHome/bin/keytool.exe" @('-genkeypair','-keystore',$key,'-storepass:file',$passfile,'-keypass:file',$passfile,'-alias','liveplus-personal','-keyalg','RSA','-keysize','3072','-validity','10000','-dname','CN=LivePlus Ledger Personal Build','-storetype','PKCS12')
+ Run-Checked "$JavaHome/bin/keytool.exe" @('-genkeypair','-keystore',$key,'-storepass:file',$passfile,'-keypass:file',$passfile,'-alias','cards-personal','-keyalg','RSA','-keysize','3072','-validity','10000','-dname','CN=Cards Ledger Personal Build','-storetype','PKCS12')
 }
 if (!(Test-Path -LiteralPath $passfile)) { throw 'Existing signing key has no password file. Restore it privately; do not regenerate the installed app key.' }
-Run-Checked "$JavaHome/bin/java.exe" @('-Xmx256m','-jar',"$BuildTools/lib/apksigner.jar",'sign','--ks',$key,'--ks-pass',"file:$passfile",'--ks-key-alias','liveplus-personal','--out',$Output,"$build/aligned.apk")
+Run-Checked "$JavaHome/bin/java.exe" @('-Xmx256m','-jar',"$BuildTools/lib/apksigner.jar",'sign','--ks',$key,'--ks-pass',"file:$passfile",'--ks-key-alias','cards-personal','--out',$Output,"$build/aligned.apk")
 Run-Checked "$JavaHome/bin/java.exe" @('-jar',"$BuildTools/lib/apksigner.jar",'verify','--verbose','--print-certs',$Output)
 Run-Checked "$BuildTools/zipalign.exe" @('-c','4',$Output)
 & "$PSScriptRoot/tools/verify-apk.ps1" -Apk $Output -Edition $Edition -BuildTools $BuildTools

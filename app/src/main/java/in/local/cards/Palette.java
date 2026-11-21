@@ -1,11 +1,10 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Build;
-import in.local.cards.R;
 
 /**
  * The colours the app draws with.

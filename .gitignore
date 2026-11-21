@@ -31,6 +31,7 @@
 
 # Personal data and unreviewed media
 liveplus-backup*.json
+cards-ledger-*.json
 /backups/
 *.db
 *.db-wal

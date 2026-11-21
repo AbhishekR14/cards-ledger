@@ -4,11 +4,11 @@ The [release workflow](../.github/workflows/release.yml) builds and publishes bo
 
 Release assets from 1.0.3:
 
-- `LivePlus-Ledger-Notifications.apk` — one selected SMS app's notifications; no SMS permission.
-- `LivePlus-Ledger-SMS.apk` — new incoming SMS through `RECEIVE_SMS`; no notification access or inbox scan.
+- `Cards-Ledger-Notifications.apk` — one selected SMS app's notifications; no SMS permission.
+- `Cards-Ledger-SMS.apk` — new incoming SMS through `RECEIVE_SMS`; no notification access or inbox scan.
 - `SHA256SUMS.txt` — one checksum line for each APK.
 
-Users choose one edition according to the access they are comfortable granting. Both share the app identity/version/signing key and cannot be installed side by side. Neither reads existing SMS. Older releases use `LivePlus-Ledger.apk` for the notification-based app. GitHub source archives are not installers. See [edition comparison](EDITIONS.md).
+Users choose one edition according to the access they are comfortable granting. Both share the app identity/version/signing key and cannot be installed side by side. Neither reads existing SMS. Older releases use `Cards-Ledger.apk` for the notification-based app. GitHub source archives are not installers. See [edition comparison](EDITIONS.md).
 
 ## 1. Configure signing secrets
 
@@ -24,7 +24,7 @@ In **GitHub → Settings → Secrets and variables → Actions**, configure:
 With an authenticated GitHub CLI, from the repository root:
 
 ```powershell
-$repo = 'chetanatole/hsbc-liveplus-ledger'
+$repo = 'AbhishekR14/cards-ledger'
 [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PWD '.signing/personal-release.p12'))) | gh secret set ANDROID_KEYSTORE_BASE64 --repo $repo
 Get-Content -LiteralPath '.signing/key-password.txt' -Raw | gh secret set ANDROID_KEYSTORE_PASSWORD --repo $repo
 gh secret list --repo $repo
@@ -43,7 +43,7 @@ Run `tools/build-all.ps1` with the [tool paths](DEVELOPMENT.md#build). It builds
 Commit and push reviewed changes, then create a tag matching the manifest base version:
 
 ```powershell
-git tag -a v1.0.3 -m "Live+ Ledger 1.0.3"
+git tag -a v1.0.3 -m "Cards Ledger 1.0.3"
 git push origin v1.0.3
 ```
 
@@ -51,7 +51,7 @@ A suffix such as `v1.0.3-beta.1` publishes a prerelease; a plain tag publishes a
 
 ## 4. Check the workflow
 
-Open [GitHub Actions](https://github.com/chetanatole/hsbc-liveplus-ledger/actions). The job:
+Open [GitHub Actions](https://github.com/AbhishekR14/cards-ledger/actions). The job:
 
 1. Checks tag/version/signing configuration and installs SDK packages.
 2. Runs synthetic tests and builds both editions using separate capture sources.
@@ -66,7 +66,7 @@ A failed test, missing secret, signature mismatch, permission/component leak or 
 Download your chosen APK and `SHA256SUMS.txt` from the same release. In PowerShell:
 
 ```powershell
-Get-FileHash -LiteralPath './LivePlus-Ledger-SMS.apk' -Algorithm SHA256
+Get-FileHash -LiteralPath './Cards-Ledger-SMS.apk' -Algorithm SHA256
 Get-Content -LiteralPath './SHA256SUMS.txt'
 ```
 
@@ -77,11 +77,11 @@ Compare with the line for that exact filename; use the Notifications filename if
 After a normal two-edition release is published:
 
 ```text
-https://github.com/chetanatole/hsbc-liveplus-ledger/releases/latest/download/LivePlus-Ledger-Notifications.apk
-https://github.com/chetanatole/hsbc-liveplus-ledger/releases/latest/download/LivePlus-Ledger-SMS.apk
+https://github.com/AbhishekR14/cards-ledger#build-and-test
+https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk
 ```
 
-These links work only once the latest normal release contains the named assets. They do not select prereleases; use the prerelease page directly. The old `LivePlus-Ledger.apk` asset name is not published by the new workflow.
+These links work only once the latest normal release contains the named assets. They do not select prereleases; use the prerelease page directly. The old `Cards-Ledger.apk` asset name is not published by the new workflow.
 
 Explain compatible in-place edition switching: export first, install one same/newer compatible edition without uninstalling, open the app and enable the new capture method. Existing local merchant mappings survive in-place updates but are not included in JSON backups. See [installation](INSTALLATION.md) and [privacy](../PRIVACY.md).
 

@@ -1,6 +1,6 @@
 /**
- * Runs the suites this fork adds. Upstream's own suites stay under EngineTest, which is left
- * untouched so that a sync never conflicts there.
+ * Runs the multi-card suites: plans, rewards, the card registry, alert routing, credits and the
+ * whole-app backup. The parser and capture suites run under EngineTest.
  */
 public class MultiCardTest {
  public static void main(String[] args){

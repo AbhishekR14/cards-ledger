@@ -1,4 +1,4 @@
-import in.local.liveplus.SmsCapture;
+import in.local.cards.SmsCapture;
 import java.util.*;
 
 public class SmsCaptureTest {

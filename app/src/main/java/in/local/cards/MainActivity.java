@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import android.app.*;
 import android.content.*;
@@ -19,10 +19,9 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import org.json.*;
-import in.local.cards.R;
 
 public class MainActivity extends Activity {
- // MULTI-CARD: the palette follows the phone's own colours on Android 12 and newer, so these
+ // the palette follows the phone's own colours on Android 12 and newer, so these
  // are set per draw rather than fixed. BRAND_INK is what sits on an accent fill, MINT the fill.
  int BRAND_INK=Color.rgb(20,45,53), MINT=Color.rgb(185,237,204);
  int INK,MUTED,BG,SURFACE,NOTICE,CORAL,SUCCESS,SELECTED,ON_SELECTED,REVIEW,ON_REVIEW,TAB_BG,TAB_BORDER;
@@ -30,16 +29,16 @@ public class MainActivity extends Activity {
  final Handler settingsHandler=new Handler(Looper.getMainLooper());
  final Map<EditText,Runnable> settingWrites=new LinkedHashMap<>();
  SharedPreferences p; Store store; LinearLayout root,body,nav; String tab="Overview"; boolean reviewOnly=false; LocalDate anchor=LocalDate.now(ZoneId.of("Asia/Kolkata"));
- // MULTI-CARD: p and store belong to one card; g holds the device-wide capture and theme state.
+ // p and store belong to one card; g holds the device-wide capture and theme state.
  SharedPreferences g; CardBook.Card card; RewardPlan plan; int cardId; boolean device,registered;
- public static final String EXTRA_DEVICE="in.local.liveplus.DEVICE",EXTRA_RESTORE="in.local.liveplus.RESTORE",EXTRA_SETTINGS="in.local.liveplus.SETTINGS";
+ public static final String EXTRA_DEVICE="in.local.cards.DEVICE",EXTRA_RESTORE="in.local.cards.RESTORE",EXTRA_SETTINGS="in.local.cards.SETTINGS";
  Set<String> selectedPackages=new HashSet<>();
  ScrollView scroll;
  Bundle scrollPositions=new Bundle();
  String renderedPage;
  boolean restoringScroll;
  final BroadcastReceiver changed=new BroadcastReceiver(){public void onReceive(Context c,Intent i){draw();}};
- // MULTI-CARD: this is upstream's screen, scoped to the card the home grid opened.
+ // this is upstream's screen, scoped to the card the home grid opened.
  @Override public void onCreate(Bundle b){g=Cards.global(this);
   device=getIntent()!=null&&getIntent().getBooleanExtra(EXTRA_DEVICE,false);
   card=device?null:Cards.card(this,getIntent()==null?0:getIntent().getIntExtra(Cards.EXTRA_CARD,0));
@@ -47,17 +46,17 @@ public class MainActivity extends Activity {
   if(device){p=g;plan=RewardPlan.hsbcLivePlus();tab="Settings";}
   else{cardId=card.id;p=Cards.prefs(this,cardId);plan=Cards.plan(this,cardId);if(getIntent().getBooleanExtra(EXTRA_SETTINGS,false))tab="Settings";}
   CaptureStore.prepareEdition(this);if(!CaptureMode.SMS)SmsApps.selected(this);darkMode=Palette.dark(this,g.getString("theme","system"));setTheme(darkMode?R.style.AppTheme_Dark:R.style.AppTheme_Light);super.onCreate(b);applyPalette();if(!device)store=new Store(this,card.database());getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);if(b!=null){pendingSmsEnable=b.getBoolean("pendingSmsEnable",false);pendingNotificationEnable=b.getBoolean("pendingNotificationEnable",false);tab=b.getString("tab","Overview");anchor=LocalDate.parse(b.getString("anchor",anchor.toString()));reviewOnly=b.getBoolean("reviewOnly",false);Bundle saved=b.getBundle("scrollPositions");if(saved!=null)scrollPositions=saved;}draw();
-  // MULTI-CARD: the card grid can send a new card straight into Restore backup.
+  // the card grid can send a new card straight into Restore backup.
   if(!device&&b==null&&getIntent().getBooleanExtra(EXTRA_RESTORE,false)){tab="Settings";draw();restore();}}
  @Override public void onSaveInstanceState(Bundle b){if(card==null&&!device){super.onSaveInstanceState(b);return;}flushSettings();rememberScroll();b.putBoolean("pendingSmsEnable",pendingSmsEnable);b.putBoolean("pendingNotificationEnable",pendingNotificationEnable);b.putString("tab",tab);b.putString("anchor",anchor.toString());b.putBoolean("reviewOnly",reviewOnly);b.putBundle("scrollPositions",new Bundle(scrollPositions));super.onSaveInstanceState(b);}
  @Override public void onResume(){super.onResume();
-  // MULTI-CARD: the card's name, plan or very existence can change while this screen is away.
+  // the card's name, plan or very existence can change while this screen is away.
   if(device){if(pendingNotificationEnable){pendingNotificationEnable=false;if(access()&&savedCardReady())startCapture();}draw();return;}
   if(card==null)return;
   CardBook.Card current=Cards.book(this).get(cardId);
   if(current==null){finish();return;}
   card=current;plan=Cards.plan(this,cardId);
-  IntentFilter f=new IntentFilter("in.local.liveplus.CHANGED");if(Build.VERSION.SDK_INT>=33)registerReceiver(changed,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changed,f);registered=true;if(pendingNotificationEnable){pendingNotificationEnable=false;if(access()&&savedCardReady())startCapture();}draw();}
+  IntentFilter f=new IntentFilter("in.local.cards.CHANGED");if(Build.VERSION.SDK_INT>=33)registerReceiver(changed,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changed,f);registered=true;if(pendingNotificationEnable){pendingNotificationEnable=false;if(access()&&savedCardReady())startCapture();}draw();}
  @Override public void onPause(){flushSettings();if(card!=null)rememberScroll();if(registered){unregisterReceiver(changed);registered=false;}super.onPause();}
  @Override public void onDestroy(){flushSettings();settingsHandler.removeCallbacksAndMessages(null);if(store!=null)store.close();super.onDestroy();}
  int themeColor(int attribute){android.util.TypedValue value=new android.util.TypedValue();getTheme().resolveAttribute(attribute,value,true);return value.data;}
@@ -75,7 +74,7 @@ public class MainActivity extends Activity {
  LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
  void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
- // MULTI-CARD: stacked buttons get room between them; pill shapes touching read as one block.
+ // stacked buttons get room between them; pill shapes touching read as one block.
  void add(LinearLayout l,View v){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);if(v instanceof Button){lp.topMargin=dp(5);lp.bottomMargin=dp(5);}l.addView(v,lp);}
  LinearLayout card(LinearLayout parent,int color){LinearLayout l=column();l.setPadding(dp(20),dp(20),dp(20),dp(20));l.setBackground(bg(color,26));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(14);parent.addView(l,lp);return l;}
  Button button(String s,View.OnClickListener click){
@@ -131,7 +130,7 @@ public class MainActivity extends Activity {
   flushSettings();rememberScroll();
   root=column();root.setBackgroundColor(BG);root.setPadding(dp(20),dp(12),dp(20),0);setContentView(root);
   root.setOnApplyWindowInsetsListener((v,i)->{root.setPadding(dp(20),Math.max(dp(12),i.getSystemWindowInsetTop())+dp(14),dp(20),i.getSystemWindowInsetBottom());return i;});
-  // MULTI-CARD: the card's own name heads the screen, with a way back to the grid.
+  // the card's own name heads the screen, with a way back to the grid.
   LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);
   Button back=button("‹",v->finish());back.setContentDescription("Back to all cards");top.addView(back,new LinearLayout.LayoutParams(dp(46),dp(46)));
   TextView brand=text(device?"Settings":card.name,25,INK,true);LinearLayout.LayoutParams brandLayout=new LinearLayout.LayoutParams(0,-2,1);brandLayout.setMarginStart(dp(10));top.addView(brand,brandLayout);add(root,top);
@@ -152,7 +151,7 @@ public class MainActivity extends Activity {
   restoreScroll();
  }
  void period(){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);Button prev=button("‹",v->{anchor=start().minusDays(1);draw();});prev.setContentDescription("Previous reward period");row.addView(prev,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView t=text(start().format(DateTimeFormatter.ofPattern("d MMM"))+" — "+end().format(DateTimeFormatter.ofPattern("d MMM yyyy")),15,INK,true);t.setGravity(Gravity.CENTER);row.addView(t,new LinearLayout.LayoutParams(0,-2,1));Button next=button("›",v->{anchor=end().plusDays(1);draw();});next.setContentDescription("Next reward period");row.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));add(body,row);TextView mode=text(day()==0?"Calendar month" : "Statement period · closes on day "+day(),12,MUTED,false);mode.setGravity(Gravity.CENTER);add(body,mode);gap(body,16);}
- // MULTI-CARD: the figures and every rate in the wording come from this card's reward plan. With
+ // the figures and every rate in the wording come from this card's reward plan. With
  // the HSBC Live+ preset they are Engine.totals' own numbers, which RewardsTest checks.
  void overview(){
   List<Engine.Tx> rows=store.all();Rewards.Totals t=Rewards.totals(rows,start(),end(),plan);
@@ -199,7 +198,7 @@ public class MainActivity extends Activity {
  String label(int category){String[] labels=plan.labels();return category>=0&&category<labels.length?labels[category]:RewardPlan.UNKNOWN;}
  void metric(LinearLayout l,String label,String value){LinearLayout r=new LinearLayout(this);r.setPadding(0,dp(7),0,dp(7));r.addView(text(label,14,MUTED,false),new LinearLayout.LayoutParams(0,-2,1));r.addView(text(value,16,INK,true));add(l,r);}
  void cashbackMetric(LinearLayout parent,String label,long spend,long cashback){
-  // MULTI-CARD: a points plan earns points here, not rupees.
+  // a points plan earns points here, not rupees.
   cashbackMetric(parent,label,spend,cashback,plan.pointsUnit()?"Estimated points":"Estimated cashback");
  }
  void cashbackMetric(LinearLayout parent,String label,long spend,long cashback,String cashbackLabel){
@@ -254,12 +253,12 @@ public class MainActivity extends Activity {
  }
  void edit(Engine.Tx old){
   boolean fresh=old==null;Rows.Row x=Rows.asRow(fresh?new Rows.Row():old);LinearLayout l=dialogBody();
-  // MULTI-CARD: the same dialog records money paid to the card, which earns nothing.
+  // the same dialog records money paid to the card, which earns nothing.
   CheckBox paid=new CheckBox(this);paid.setText("Money paid to the card, not spent");paid.setChecked(x.credit);add(l,paid);
   EditText merchant=input(l,"Merchant",fresh?"":x.merchant,1);EditText amount=input(l,"Amount in ₹",fresh?"":BigDecimalValue(x.amount),8194);LocalDate[] selectedDate={fresh?LocalDate.now(ZoneId.of("Asia/Kolkata")):LocalDate.parse(x.date)};dateInput(l,selectedDate);
   add(l,text("Reward category",13,MUTED,true));Spinner cat=new Spinner(this);cat.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,plan.labels()));cat.setSelection(Math.max(0,Math.min(x.category,plan.count()-1)));add(l,cat);gap(l,8);add(l,text("Choose based on the bank’s merchant category, not the item purchased.",12,MUTED,false));
   CheckBox learn=new CheckBox(this);learn.setText("Remember this merchant’s category");learn.setChecked(x.category!=0&&store.rule(x.merchant)==x.category);add(l,learn);
-  // MULTI-CARD: a credit can name the category it reverses, which takes that category's reward
+  // a credit can name the category it reverses, which takes that category's reward
   // back. Left on the first entry, it is a bill payment and changes nothing.
   String[] creditLabels=plan.labels();creditLabels[0]="Not a reversal · a bill payment";
   TextView creditHint=text("Pick the category this credit reverses to take its "+(plan.pointsUnit()?"points":"cashback")+" back. A bill payment changes nothing.",12,MUTED,false);
@@ -292,7 +291,7 @@ public class MainActivity extends Activity {
   Spinner pick=new Spinner(this);pick.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels.isEmpty()?new String[]{"No matching purchase"}:labels.toArray(new String[0])));add(l,pick);
   new AlertDialog.Builder(this).setTitle("Review refund").setView(scrolled(l)).setPositiveButton("Link",(d,w)->{if(options.isEmpty()){toast("Add the original purchase first.");return;}refund.linked=""+options.get(pick.getSelectedItemPosition()).id;refund.confirmed=true;store.save(refund);draw();}).setNegativeButton("Close",null).setNeutralButton("More",(d,w)->new AlertDialog.Builder(this).setItems(new String[]{"Unlink refund","Delete this alert"},(a,i)->{if(i==0){refund.linked="";refund.confirmed=false;}else refund.active=false;store.save(refund);draw();}).show()).show();
  }
- // MULTI-CARD: the pasted alert is read for this card's bank and suffix, through the same gate
+ // the pasted alert is read for this card's bank and suffix, through the same gate
  // the automatic router uses.
  void paste(){LinearLayout l=dialogBody();add(l,text("Paste one "+card.issuer+" purchase or refund alert. OTPs are rejected. Alert text is parsed on this phone and is not saved.",14,MUTED,false));EditText e=new EditText(this);e.setHint(card.issuer+" transaction alert");e.setMinLines(4);e.setGravity(Gravity.TOP);add(l,e);AlertDialog dlg=new AlertDialog.Builder(this).setTitle("Import one alert").setView(scrolled(l)).setPositiveButton("Preview",null).setNegativeButton("Cancel",null).create();dlg.setOnShowListener(v->dlg.getButton(-1).setOnClickListener(w->{String pasted=e.getText().toString();boolean[] paidIn={false};Engine.Parsed a=Alerts.parse("",pasted,p.getString("last4",""),System.currentTimeMillis(),card.issuer);
    if(a==null){Credits.Posted posted=Credits.parse("",pasted,p.getString("last4",""),System.currentTimeMillis());if(posted!=null){a=Alerts.asTransaction(posted);paidIn[0]=true;}}
@@ -337,7 +336,7 @@ public class MainActivity extends Activity {
   add(appearance,text(Palette.of(this,darkMode).dynamic?"Colours follow your wallpaper, as Android sets them.":"Colours follow the app's own scheme on this version of Android.",12,MUTED,false));
 
  }
- // MULTI-CARD: one card's own settings. Everything the device holds once — capture, the SMS app,
+ // one card's own settings. Everything the device holds once — capture, the SMS app,
  // the theme — moved to deviceSettings() below, reached from the card grid.
  void settings(){
   boolean capped=!RewardPlan.CAP_NONE.equals(plan.capBasis);
@@ -392,7 +391,7 @@ public class MainActivity extends Activity {
    Cards.save(this,book);card=book.get(cardId);issuer.setError(null);return true;
   }catch(IllegalArgumentException error){issuer.setError(error.getMessage());return false;}
  }
- /** MULTI-CARD: upstream's device-wide settings, reached from the card grid rather than from one
+ /** upstream's device-wide settings, reached from the card grid rather than from one
   * card's own screen. The blocks below are upstream's, moved rather than rewritten. */
  void deviceSettings(){
   LinearLayout capture=card(body,SURFACE);add(capture,text("Automatic capture",23,INK,true));gap(capture,8);
@@ -456,9 +455,9 @@ public class MainActivity extends Activity {
  boolean saveCap(EditText field){
   try{long amount=SettingsValues.cap(field.getText().toString());p.edit().putLong("cap",amount).apply();field.setError(null);return true;}catch(IllegalArgumentException error){field.setError(error.getMessage());return false;}
  }
- // MULTI-CARD: capture may start as soon as any card is set up.
+ // capture may start as soon as any card is set up.
  boolean savedCardReady(){return Cards.anyReady(this);}
- // MULTI-CARD: capture is one device-wide switch shared by every card.
+ // capture is one device-wide switch shared by every card.
  void startCapture(){g.edit().putBoolean("capture",true).putBoolean("captureError",false).putString("captureEdition",CaptureMode.ID).putLong("started",System.currentTimeMillis()).apply();CaptureMode.enabled();}
  void chooseSources(TextView display){
   Map<String,String> apps=SmsApps.installed(this);
@@ -492,7 +491,7 @@ public class MainActivity extends Activity {
   }
  }
  void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
- // MULTI-CARD: the whole device in one file, so an uninstall is recoverable.
+ // the whole device in one file, so an uninstall is recoverable.
  void backupEverything(){
   startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE)
    .putExtra(Intent.EXTRA_TITLE,"cards-ledger-"+LocalDate.now(ZoneId.of("Asia/Kolkata"))+".json"),51);
@@ -504,10 +503,10 @@ public class MainActivity extends Activity {
    .setPositiveButton("Choose file",(d,w)->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),52))
    .show();
  }
- void export(){Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"liveplus-backup-"+LocalDate.now()+".json");startActivityForResult(i,41);}
+ void export(){Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"cards-ledger-"+(card==null?"card":card.name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+","-"))+"-"+LocalDate.now()+".json");startActivityForResult(i,41);}
  void restore(){new AlertDialog.Builder(this).setTitle("Restore a backup").setMessage("Restore is available into an empty ledger. It restores transactions and settings. Capture stays off until you enable it again.").setNegativeButton("Cancel",null).setPositiveButton("Choose file",(d,w)->{if(!store.all().isEmpty()){toast("Export and erase existing data first.");return;}startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),42);}).show();}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;try{
-  // MULTI-CARD: 51 and 52 are the whole-device backup; 41 and 42 below are upstream's, one card.
+  // 51 and 52 are the whole-device backup; 41 and 42 below are upstream's, one card.
   if(req==51){
    String text=Vault.encode(Cards.snapshot(this));
    try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(text.getBytes(StandardCharsets.UTF_8));}

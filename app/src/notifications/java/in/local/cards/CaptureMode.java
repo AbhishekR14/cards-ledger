@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 import android.content.Context;
 import android.provider.Settings;
 public final class CaptureMode {

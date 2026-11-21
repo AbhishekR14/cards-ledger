@@ -2,7 +2,7 @@
 
 An offline Android app for tracking spending and estimated rewards across **several Indian credit cards** — one tile per card, each with its own ledger, merchant mappings and reward rules.
 
-A fork of [chetanatole/hsbc-liveplus-ledger](https://github.com/chetanatole/hsbc-liveplus-ledger), which tracks a single HSBC Live+ card. That card is one tile here and keeps upstream's own parser, categories and cashback maths; the rest of this app is the shell around it.
+Cards Ledger grew out of [Live+ Ledger](https://github.com/chetanatole/hsbc-liveplus-ledger) by Chetan Atole, a single-card tracker for the HSBC Live+ card. Its alert parser, merchant catalogue and HSBC cashback rules carry on here as the HSBC Live+ card's preset.
 
 **Android 8.0+ · Native Java · On-device storage · No internet permission**
 
@@ -67,16 +67,12 @@ APKs need Windows PowerShell, JDK 17, Android SDK Platform 35 and Build-Tools 35
   -BuildTools 'C:/path/to/Android/Sdk/build-tools/35.0.0'
 ```
 
-That writes `build/Cards-Ledger-SMS.apk`. Upstream's notification-capture edition still builds with `-Edition notifications`; this fork simply does not publish it. No Gradle, Android Studio or emulator is involved.
+That writes `build/Cards-Ledger-SMS.apk`. A notification-capture edition, for phones where you would rather not grant SMS access, still builds with `-Edition notifications`; it is not published. No Gradle, Android Studio or emulator is involved.
 
 In CI, **Actions → Test build APKs** builds and publishes the APK, and a push to the development branch does the same.
 
 Further reading: [development](docs/DEVELOPMENT.md), [device testing](DEVICE-CHECK.md), [releases](docs/RELEASING.md), [reward assumptions for the HSBC card](docs/REWARDS.md), [merchant catalogue](docs/MERCHANTS.md), [capture editions](docs/EDITIONS.md).
 
-## Keeping the fork current
-
-`main` mirrors upstream untouched and the work sits on a development branch; upstream files carry a `// MULTI-CARD:` comment wherever this fork edits them, and `Engine.java` is not edited at all. [docs/FORK-SYNC.md](docs/FORK-SYNC.md) has the merge sequence and which side to prefer per file; `tools/sync-upstream.ps1` runs it.
-
 ## Contributing and license
 
-[CONTRIBUTING.md](CONTRIBUTING.md) · [MIT License](LICENSE)
+[CONTRIBUTING.md](CONTRIBUTING.md) · [MIT License](LICENSE), which keeps Live+ Ledger's original copyright notice alongside this app's.

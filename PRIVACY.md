@@ -1,6 +1,6 @@
 # Privacy and data handling
 
-Live+ Ledger is an independent offline Android app requiring no bank login or full card number. Both editions store the ledger locally and have no internet permission, analytics, ads or cloud database.
+Cards Ledger is an independent offline Android app requiring no bank login or full card number. Both editions store the ledger locally and have no internet permission, analytics, ads or cloud database.
 
 ## Choose the access you are comfortable granting
 

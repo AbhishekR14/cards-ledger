@@ -1,15 +1,16 @@
 # Multiple cards
 
-This fork turns the single-card Live+ Ledger into **Cards Ledger**: a grid of credit cards, each
-with its own ledger, merchant mappings and reward plan. The HSBC Live+ card is one tile among
-them and still behaves exactly as upstream intends.
+**Cards Ledger** is a grid of credit cards, each with its own ledger, merchant mappings and reward
+plan. An HSBC Live+ card on its preset behaves exactly as the original single-card Live+ Ledger
+did.
 
 ## The shape of it
 
 - **Home** is a grid of tiles. A tile shows the card's name, bank, last four digits, what it has
   earned this period against its cap, and a dot when something needs review. Tap a tile to open
   the full ledger for that card; press and hold to rename, recolour, reorder or remove it.
-- **A card's screen** is upstream's app — Overview, Activity, Settings — scoped to that card.
+- **A card's screen** has three tabs — Overview, Activity, Settings. Swipe left and right to move
+  between them; swiping right from Overview goes back to the grid.
 - **Settings on the home screen** holds what belongs to the phone rather than to one card:
   automatic capture, the SMS app it watches, the theme.
 
@@ -98,16 +99,16 @@ uses a shared cap.
 `merchants` is what lets a preset categorise on its own: a purchase from a listed merchant lands
 in that category without any setup. The longest listed name wins, so "Amazon Pay" in one category
 beats a bare "Amazon" in another. A mapping you save on the card always wins over the plan's list,
-and upstream's built-in catalogue applies only to a plan whose categories are still HSBC Live+'s.
+and the built-in merchant catalogue applies only to a plan whose categories are still HSBC Live+'s.
 
 Category order is the category numbering, and a transaction stores its number. Append new
 categories rather than reordering them.
 
 ## Payments and credits
 
-Upstream recorded spending only, and its parser turns a repayment away on purpose. This fork
-keeps those too: a bill payment, a reversed charge or a cashback credit is stored in the same
-ledger, marked as money paid **to** the card.
+The purchase parser reads spending and turns a repayment away on purpose. The app keeps those
+too: a bill payment, a reversed charge or a cashback credit is stored in the same ledger, marked
+as money paid **to** the card.
 
 A credit is one of two things, and you choose which:
 
@@ -127,13 +128,13 @@ credit stays a payment.
 
 Activity shows credits with a minus in green and the note the alert used ("Payment received",
 "Cashback credited"); tap one to change what it reverses.
-- A refund against a purchase is *not* a credit: upstream already records those and links them to
+- A refund against a purchase is *not* a credit: the app records those separately and links them to
   the purchase they reverse, which reduces that purchase's eligible spend.
 - Add one by hand with **Add purchase**, ticking "Money paid to the card, not spent".
 
 ## Backing up everything
 
-A card's own Settings screen backs up that card, which is upstream's feature. **Settings → Back
+A card's own Settings screen backs up that card alone. **Settings → Back
 up everything**, on the home screen, writes one file with:
 
 - every card, with its number so its ledger is found again, its name, bank, sender filters,
@@ -156,7 +157,7 @@ against your statement and edit it in the card's **Settings → Reward plan**.
 
 | Preset | What it assumes | How solid |
 | --- | --- | --- |
-| **HSBC Live+** | 10% on dining, groceries, shopping, utilities sharing a ₹1,200 monthly cashback cap; 1.5% base | Upstream's own rules, parity-tested against them |
+| **HSBC Live+** | 10% on dining, groceries, shopping, utilities sharing a ₹1,200 monthly cashback cap; 1.5% base | The original Live+ Ledger's ruless, parity-tested against them |
 | **Amazon Pay ICICI** | 5% on Amazon (Prime), 2% at Amazon Pay partners, 1% elsewhere, no cap | Structure is well documented. **Change 5% to 3% if you are not a Prime member.** ICICI's 2026 fee changes add charges on wallet loads, gaming and large transport spends |
 | **Swiggy HDFC** | 10% on Swiggy app capped at ₹1,500 a month, 5% on online spends capped at ₹1,500, 1% elsewhere | The 10% tier and its ₹1,500 cap are confirmed; the 5% tier's cap is not. The card now comes as **BLCK** (10% on Swiggy) and **Ornge** (5%) — this preset is BLCK |
 | **PhonePe HDFC Ultimo** | 10% on PhonePe bills and recharges capped at ₹1,000, 5% on select online brands capped at ₹500, 1% on UPI scan and pay capped at ₹500 | Rate structure comes from PhonePe's own materials; **the caps are third-party figures and unverified** |
@@ -200,17 +201,17 @@ When an alert arrives, each capturing card is tried in grid order, and a card ta
 
 The first card that matches keeps it, so a purchase is never recorded twice. Everything else —
 reading the amount, merchant, date and refunds, and rejecting OTPs, declines and repayments — is
-upstream's parser, unchanged, so two cards at the same bank with different suffixes are separated
+the purchase parser's work, so two cards at the same bank with different suffixes are separated
 by the digits, and two cards sharing a suffix at different banks are separated by the bank.
 
 Sender ids are an optional extra filter for a bank whose name is too common in other messages.
 
 ### Merchant names other banks write differently
 
-Upstream reads the merchant from `at ...`, `towards ...` or `merchant: ...`, which is how HSBC
+The purchase parser reads the merchant from `at ...`, `towards ...` or `merchant: ...`, which is how HSBC
 writes an alert. ICICI writes `on 21-Nov-26 on AMAZON PAY IN R`, and Axis puts the merchant
-between the transaction time and the available limit. This fork reads those two shapes as a
-fallback, and only when upstream found no merchant, so upstream's own reading is never overridden.
+between the transaction time and the available limit. Those two shapes are read as a fallback,
+and only when the parser found no merchant, so its own reading is never overridden.
 An alert that still yields nothing is recorded as "Unknown merchant" and waits in review.
 
 Merchant suggestions from the built-in catalogue apply to the **HSBC Live+ plan only**, because
@@ -227,8 +228,8 @@ Chrome blocks APK downloads behind a *"This type of file can harm your device"* 
 **Download anyway** — and release assets often will not download inside the GitHub mobile app, so
 open the link in a browser.
 
-Upstream's notification-capture edition is still in the tree and still builds with
-`./build.ps1 -Edition notifications`; this fork does not publish it. Install only one of the two
+A notification-capture edition is still in the tree and still builds with
+`./build.ps1 -Edition notifications`; it is not published. Install only one of the two
 on a phone: they share an app identity.
 
 Every run of that workflow generates its own signing key, so test builds cannot replace each

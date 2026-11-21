@@ -21,7 +21,7 @@ $archive=[IO.Compression.ZipFile]::OpenRead([IO.Path]::GetFullPath($Apk))
 try{
  $entry=$archive.GetEntry('classes.dex');$stream=$entry.Open();$memory=[IO.MemoryStream]::new()
  try{$stream.CopyTo($memory);$dex=[Text.Encoding]::ASCII.GetString($memory.ToArray())}finally{$stream.Dispose();$memory.Dispose()}
- $absent=if($Edition -eq 'sms'){'Lin/local/liveplus/AlertListener;'}else{'Lin/local/liveplus/SmsReceiver;'}
+ $absent=if($Edition -eq 'sms'){'Lin/local/cards/AlertListener;'}else{'Lin/local/cards/SmsReceiver;'}
  if($dex.Contains($absent)){throw "Wrong edition component in DEX: $absent"}
  if($dex.Contains('Landroid/provider/Telephony$Sms$Inbox;') -or $dex.Contains('content://sms')){throw 'Inbox access found in APK.'}
 }finally{$archive.Dispose()}

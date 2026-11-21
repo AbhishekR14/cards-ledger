@@ -1,4 +1,4 @@
-package in.local.liveplus;
+package in.local.cards;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

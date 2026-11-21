@@ -5,7 +5,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 out=${1:-"$root/build/test"}
 mkdir -p "$out"
-src="$root/app/src/main/java/in/local/liveplus"
+src="$root/app/src/main/java/in/local/cards"
 javac -encoding UTF-8 -source 8 -target 8 -Xlint:-options -d "$out" \
  "$src/Engine.java" \
  "$src/NotificationCapture.java" \
