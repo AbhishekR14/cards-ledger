@@ -79,7 +79,7 @@ jobs:
       - name: Build, test and verify the APK
         run: |
           $ErrorActionPreference = 'Stop'
-          ./build.ps1 -Edition sms
+          ./build.ps1
           $apk = 'build/Cards-Ledger-SMS.apk'
           $certs = & "$env:JAVA_HOME/bin/java.exe" -jar "$env:ANDROID_SDK_ROOT/build-tools/35.0.0/lib/apksigner.jar" verify --print-certs $apk
           if ($LASTEXITCODE -ne 0) { throw 'APK signature verification failed.' }

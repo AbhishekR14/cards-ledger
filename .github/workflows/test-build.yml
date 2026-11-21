@@ -55,7 +55,7 @@ jobs:
       - name: Build, test and verify the SMS edition
         run: |
           $ErrorActionPreference = 'Stop'
-          ./build.ps1 -Edition sms
+          ./build.ps1
           $hash = (Get-FileHash -LiteralPath 'build/Cards-Ledger-SMS.apk' -Algorithm SHA256).Hash.ToLowerInvariant()
           [IO.File]::WriteAllText((Join-Path $PWD 'build/SHA256SUMS.txt'),"$hash  Cards-Ledger-SMS.apk"+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
       - name: Publish the test APK

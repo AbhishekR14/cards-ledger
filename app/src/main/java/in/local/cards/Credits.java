@@ -39,7 +39,7 @@ public final class Credits {
  /**
   * Reads a credit for the given card, or returns null when the message is not one.
   *
-  * @param context the sender or notification title
+  * @param context the SMS sender
   * @param body the message itself
   * @param last4 the card's last four digits
   * @param time when the message arrived, for a message that carries no date

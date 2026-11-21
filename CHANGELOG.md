@@ -3,6 +3,14 @@
 All notable changes to Cards Ledger are recorded here. The project follows
 [semantic versioning](https://semver.org).
 
+## Unreleased
+
+### Removed
+
+- The notification capture build, which was never published. The app still captures alerts from
+  new incoming SMS exactly as before; only unused code is gone, and the build no longer takes an
+  `-Edition` option.
+
 ## 1.0.1
 
 ### Fixed

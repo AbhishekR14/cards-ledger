@@ -1,5 +1,7 @@
 package in.local.cards;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.*;
 
 /** Parses one newly delivered SMS, including multipart PDUs. Never queries an inbox. */
@@ -22,7 +24,11 @@ public final class SmsCapture {
   }
   String text=body.toString().replace('\u00a0',' ').replace("\u200b","");
   Engine.Parsed parsed=Engine.parse(first.sender,text,last4,first.sent);if(parsed==null)return null;
-  String fingerprint=NotificationCapture.digest("sms-v1|"+subscription+"|"+first.sender+"|"+first.sent+"|"+text.replaceAll("\\s+"," ").trim());
+  String fingerprint=digest("sms-v1|"+subscription+"|"+first.sender+"|"+first.sent+"|"+text.replaceAll("\\s+"," ").trim());
   return new Candidate(parsed,fingerprint,received);
+ }
+ /** SHA-256 in lower-case hex: how a message is remembered without keeping its text. */
+ public static String digest(String value){
+  try{byte[] bytes=MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));StringBuilder out=new StringBuilder();for(byte b:bytes)out.append(String.format(Locale.ROOT,"%02x",b&255));return out.toString();}catch(Exception e){throw new IllegalStateException(e);}
  }
 }

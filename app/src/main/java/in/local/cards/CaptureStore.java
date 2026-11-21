@@ -2,7 +2,7 @@ package in.local.cards;
 
 import android.content.*;
 
-/** Shared persistence only. notification and SMS delivery are separate build components. */
+/** Writes a captured transaction to its card's ledger. {@link SmsReceiver} does the receiving. */
 public final class CaptureStore {
  public static synchronized int save(Context context,Engine.Parsed parsed,String event,long received,boolean possibleDuplicate,String source){
   return save(context,Cards.book(context).isEmpty()?1:Cards.book(context).at(0).id,parsed,event,received,possibleDuplicate,source);
@@ -33,7 +33,7 @@ public final class CaptureStore {
   Store.prefs(context).edit().putBoolean("captureError",true).apply();return 0;
  }
  public static void prepareEdition(Context context){
-  SharedPreferences p=Store.prefs(context);String previous=p.getString("captureEdition","notifications");
+  SharedPreferences p=Store.prefs(context);String previous=p.getString("captureEdition","");
   SharedPreferences.Editor editor=p.edit().putString("captureEdition",CaptureMode.ID).remove("capture_diagnostics");
   if(!CaptureMode.ID.equals(previous)){
    editor.putBoolean("capture",false).putBoolean("captureError",false).remove("started").remove("lastCaptured").remove("capture_diagnostics");

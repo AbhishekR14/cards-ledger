@@ -51,7 +51,7 @@ says so in the release notes.
      git push origin v1.0.0
      ```
 
-Either way, the workflow checks that the version matches `versionName`, builds and verifies the SMS edition, and
+Either way, the workflow checks that the version matches `versionName`, builds and verifies the APK, and
 publishes a GitHub release with `Cards-Ledger-SMS.apk` and `SHA256SUMS.txt`. A tag with a suffix,
 such as `v1.1.0-beta.1`, is published as a prerelease.
 

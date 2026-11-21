@@ -99,9 +99,8 @@ public class EngineTest {
   check(Engine.category("My Local Shop",current,false,2)==2,"custom mapping classifies an unknown merchant");
   check(Engine.category("Blinkit",current,false,-1)==2,"no saved mapping uses built-in suggestion");
   check(Engine.category("Blinkit",current,false,0)==2&&Engine.category("Blinkit",current,false,99)==2,"invalid saved categories do not suppress suggestions");
-  checks+=NotificationCaptureTest.run();
   checks+=SmsCaptureTest.run();
   checks+=SettingsValuesTest.run();
-  System.out.println("PASS: "+checks+" parser, reward, refund, period, review, merchant, notification, incoming-SMS, and settings validation checks; "+Engine.builtInMerchants().size()+" built-in aliases");
+  System.out.println("PASS: "+checks+" parser, reward, refund, period, review, merchant, incoming-SMS, and settings validation checks; "+Engine.builtInMerchants().size()+" built-in aliases");
  }
 }

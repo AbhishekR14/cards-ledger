@@ -17,9 +17,7 @@ if ($JavaHome) {
 }
 $sources = @(
   (Join-Path $repoRoot 'app/src/main/java/in/local/cards/Engine.java'),
-  (Join-Path $repoRoot 'app/src/main/java/in/local/cards/NotificationCapture.java'),
   (Join-Path $repoRoot 'tests/EngineTest.java'),
-  (Join-Path $repoRoot 'tests/NotificationCaptureTest.java'),
   (Join-Path $repoRoot 'app/src/main/java/in/local/cards/SmsCapture.java'),
   (Join-Path $repoRoot 'tests/SmsCaptureTest.java'),
   (Join-Path $repoRoot 'app/src/main/java/in/local/cards/SettingsValues.java'),

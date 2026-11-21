@@ -8,7 +8,6 @@ mkdir -p "$out"
 src="$root/app/src/main/java/in/local/cards"
 javac -encoding UTF-8 -source 8 -target 8 -Xlint:-options -d "$out" \
  "$src/Engine.java" \
- "$src/NotificationCapture.java" \
  "$src/SmsCapture.java" \
  "$src/SettingsValues.java" \
  "$src/Json.java" \
@@ -20,7 +19,6 @@ javac -encoding UTF-8 -source 8 -target 8 -Xlint:-options -d "$out" \
  "$src/Credits.java" \
  "$src/Vault.java" \
  "$root/tests/EngineTest.java" \
- "$root/tests/NotificationCaptureTest.java" \
  "$root/tests/SmsCaptureTest.java" \
  "$root/tests/SettingsValuesTest.java" \
  "$root/tests/JsonTest.java" \

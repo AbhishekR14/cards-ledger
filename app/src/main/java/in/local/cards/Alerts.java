@@ -157,7 +157,7 @@ public final class Alerts {
   if(body.length()>6000)return null;
   Credits.Posted posted=Credits.parse(first.sender,body,target.last4,first.sent);
   if(posted==null)return null;
-  String event=NotificationCapture.digest("credit-v1|"+subscription+"|"+first.sender+"|"+first.sent+"|"+body.replaceAll("\\s+"," ").trim());
+  String event=SmsCapture.digest("credit-v1|"+subscription+"|"+first.sender+"|"+first.sent+"|"+body.replaceAll("\\s+"," ").trim());
   return new SmsMatch(target.cardId,new SmsCapture.Candidate(asTransaction(posted),event,received),true);
  }
  /** The same parts with the bank token added to the sender, so Engine's own gate passes. */
@@ -165,29 +165,6 @@ public final class Alerts {
   List<SmsCapture.Part> out=new ArrayList<>();
   for(SmsCapture.Part part:parts)out.add(part==null?null:new SmsCapture.Part(gate(part.sender,issuer),part.body,part.sent));
   return out;
- }
- /** The same notification with the bank token added to its title. The replay cache key and the
-  * event fingerprint are built from the source, the notification key and the body, so adding to
-  * the title changes neither. */
- public static NotificationCapture.Envelope withGate(NotificationCapture.Envelope envelope,String issuer){
-  NotificationCapture.Envelope out=new NotificationCapture.Envelope();
-  out.source=envelope.source;out.key=envelope.key;out.title=gate(envelope.title,issuer);
-  out.bigText=envelope.bigText;out.text=envelope.text;out.posted=envelope.posted;
-  out.summary=envelope.summary;out.redacted=envelope.redacted;
-  out.messages.addAll(envelope.messages);out.lines.addAll(envelope.lines);
-  return out;
- }
- /** True when the notification's own text names this card's bank. The conversation title, the
-  * posting app and each message's sender make up the sender side; everything else is the body. */
- public static boolean accepts(NotificationCapture.Envelope envelope,Target target){
-  StringBuilder context=new StringBuilder(envelope.title).append(' ').append(envelope.source);
-  StringBuilder body=new StringBuilder(envelope.bigText).append(' ').append(envelope.text);
-  for(NotificationCapture.Message message:envelope.messages){
-   context.append(' ').append(message.sender);
-   body.append(' ').append(message.text);
-  }
-  for(String line:envelope.lines)body.append(' ').append(line);
-  return accepts(context.toString(),body.toString(),target);
  }
  private static boolean senderMatches(String senderField,List<String> senders){
   if(senders.isEmpty())return true;

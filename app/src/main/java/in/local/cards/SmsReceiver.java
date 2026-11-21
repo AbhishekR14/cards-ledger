@@ -6,7 +6,7 @@ import android.telephony.SmsMessage;
 import java.util.*;
 import java.util.concurrent.*;
 
-/** OS-only incoming-SMS broadcast receiver. No SMS provider or notification listener. */
+/** Receives each new incoming SMS from Android. Never queries the SMS inbox. */
 public final class SmsReceiver extends BroadcastReceiver {
  private static final ExecutorService WORK=new ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<Runnable>(64));
  @Override public void onReceive(Context context,Intent intent){

@@ -1,18 +1,20 @@
 import in.local.cards.SmsCapture;
+import java.time.*;
 import java.util.*;
 
 public class SmsCaptureTest {
  static int checks;
  static void check(boolean value,String name){checks++;if(!value)throw new AssertionError(name);}
- static final long NOW=NotificationCaptureTest.NOW,START=NOW-60000;
- static final String PURCHASE=NotificationCaptureTest.PURCHASE,OTP=NotificationCaptureTest.OTP;
+ static final long NOW=LocalDate.of(2026,11,7).atTime(12,0).atZone(ZoneId.of("Asia/Kolkata")).toInstant().toEpochMilli(),START=NOW-60000;
+ static final String OTP="HSBC OTP [redacted] for INR 101.23 purchase on credit card xx1234. Do not share it.";
+ static final String PURCHASE="HSBC Credit Card xx1234 used at ZOMATO for INR 101.23 on 06/11/26. Avl limit INR 50000.00; due INR 1000.00. Call +910000000000 to report fraud.";
  static List<SmsCapture.Part> sms(String body,long sent){return Collections.singletonList(new SmsCapture.Part("TEST-SENDER",body,sent));}
  static SmsCapture.Candidate collect(List<SmsCapture.Part> parts){return SmsCapture.collect(parts,"1234",START,NOW,1);}
  public static int run(){
   checks=0;SmsCapture.Candidate purchase=collect(sms(PURCHASE,NOW-1000));
   check(purchase!=null&&purchase.transaction.amount==10123&&purchase.transaction.merchant.equals("ZOMATO"),"new incoming SMS parses a matching purchase");
   check(collect(sms(OTP,NOW-2000))==null,"OTP SMS is discarded independently");
-  check(collect(sms(PURCHASE,NOW-1000))!=null,"purchase after OTP remains parseable without clearing notifications");
+  check(collect(sms(PURCHASE,NOW-1000))!=null,"a purchase after an OTP still parses");
   check(collect(sms(PURCHASE+" "+OTP,NOW-1000))==null,"mixed OTP purchase in the same SMS is rejected");
   int split=PURCHASE.indexOf("ZOMATO")+3;
   List<SmsCapture.Part> parts=Arrays.asList(new SmsCapture.Part("TEST-SENDER",PURCHASE.substring(0,split),NOW-1000),new SmsCapture.Part("TEST-SENDER",PURCHASE.substring(split),NOW-1000));

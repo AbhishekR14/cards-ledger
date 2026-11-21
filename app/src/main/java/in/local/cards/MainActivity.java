@@ -25,14 +25,13 @@ public class MainActivity extends Activity {
  // are set per draw rather than fixed. BRAND_INK is what sits on an accent fill, MINT the fill.
  int BRAND_INK=Color.rgb(20,45,53), MINT=Color.rgb(185,237,204);
  int INK,MUTED,BG,SURFACE,NOTICE,CORAL,SUCCESS,SELECTED,ON_SELECTED,REVIEW,ON_REVIEW,TAB_BG,TAB_BORDER;
- boolean darkMode,pendingSmsEnable,pendingNotificationEnable;
+ boolean darkMode,pendingSmsEnable;
  final Handler settingsHandler=new Handler(Looper.getMainLooper());
  final Map<EditText,Runnable> settingWrites=new LinkedHashMap<>();
  SharedPreferences p; Store store; LinearLayout root,body,nav; String tab="Overview"; boolean reviewOnly=false; LocalDate anchor=LocalDate.now(ZoneId.of("Asia/Kolkata"));
  // P and store belong to one card; g holds the device-wide capture and theme state.
  SharedPreferences g; CardBook.Card card; RewardPlan plan; int cardId; boolean device,registered;
  public static final String EXTRA_DEVICE="in.local.cards.DEVICE",EXTRA_RESTORE="in.local.cards.RESTORE",EXTRA_SETTINGS="in.local.cards.SETTINGS";
- Set<String> selectedPackages=new HashSet<>();
  ScrollView scroll;
  Bundle scrollPositions=new Bundle();
  String renderedPage;
@@ -50,18 +49,18 @@ public class MainActivity extends Activity {
   if(card==null&&!device){super.onCreate(b);finish();return;}
   if(device){p=g;plan=RewardPlan.hsbcLivePlus();tab="Settings";}
   else{cardId=card.id;p=Cards.prefs(this,cardId);plan=Cards.plan(this,cardId);if(getIntent().getBooleanExtra(EXTRA_SETTINGS,false))tab="Settings";}
-  CaptureStore.prepareEdition(this);if(!CaptureMode.SMS)SmsApps.selected(this);darkMode=Palette.dark(this,g.getString("theme","system"));setTheme(darkMode?R.style.AppTheme_Dark:R.style.AppTheme_Light);super.onCreate(b);applyPalette();if(!device)store=new Store(this,card.database());getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);if(b!=null){pendingSmsEnable=b.getBoolean("pendingSmsEnable",false);pendingNotificationEnable=b.getBoolean("pendingNotificationEnable",false);tab=b.getString("tab","Overview");anchor=LocalDate.parse(b.getString("anchor",anchor.toString()));reviewOnly=b.getBoolean("reviewOnly",false);Bundle saved=b.getBundle("scrollPositions");if(saved!=null)scrollPositions=saved;}
+  CaptureStore.prepareEdition(this);darkMode=Palette.dark(this,g.getString("theme","system"));setTheme(darkMode?R.style.AppTheme_Dark:R.style.AppTheme_Light);super.onCreate(b);applyPalette();if(!device)store=new Store(this,card.database());getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);if(b!=null){pendingSmsEnable=b.getBoolean("pendingSmsEnable",false);tab=b.getString("tab","Overview");anchor=LocalDate.parse(b.getString("anchor",anchor.toString()));reviewOnly=b.getBoolean("reviewOnly",false);Bundle saved=b.getBundle("scrollPositions");if(saved!=null)scrollPositions=saved;}
   // The card grid can send a new card straight into Restore backup.
   if(!device&&b==null&&getIntent().getBooleanExtra(EXTRA_RESTORE,false)){tab="Settings";draw();restore();}}
- @Override public void onSaveInstanceState(Bundle b){if(card==null&&!device){super.onSaveInstanceState(b);return;}flushSettings();rememberScroll();b.putBoolean("pendingSmsEnable",pendingSmsEnable);b.putBoolean("pendingNotificationEnable",pendingNotificationEnable);b.putString("tab",tab);b.putString("anchor",anchor.toString());b.putBoolean("reviewOnly",reviewOnly);b.putBundle("scrollPositions",new Bundle(scrollPositions));super.onSaveInstanceState(b);}
+ @Override public void onSaveInstanceState(Bundle b){if(card==null&&!device){super.onSaveInstanceState(b);return;}flushSettings();rememberScroll();b.putBoolean("pendingSmsEnable",pendingSmsEnable);b.putString("tab",tab);b.putString("anchor",anchor.toString());b.putBoolean("reviewOnly",reviewOnly);b.putBundle("scrollPositions",new Bundle(scrollPositions));super.onSaveInstanceState(b);}
  @Override public void onResume(){super.onResume();
   // The card's name, plan or very existence can change while this screen is away.
-  if(device){if(pendingNotificationEnable){pendingNotificationEnable=false;if(access()&&savedCardReady())startCapture();}draw();return;}
+  if(device){draw();return;}
   if(card==null)return;
   CardBook.Card current=Cards.book(this).get(cardId);
   if(current==null){finish();return;}
   card=current;plan=Cards.plan(this,cardId);
-  IntentFilter f=new IntentFilter("in.local.cards.CHANGED");if(Build.VERSION.SDK_INT>=33)registerReceiver(changed,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changed,f);registered=true;if(pendingNotificationEnable){pendingNotificationEnable=false;if(access()&&savedCardReady())startCapture();}draw();}
+  IntentFilter f=new IntentFilter("in.local.cards.CHANGED");if(Build.VERSION.SDK_INT>=33)registerReceiver(changed,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changed,f);registered=true;draw();}
  @Override public void onPause(){flushSettings();if(card!=null){rememberScroll();HomeActivity.forget(cardId);}if(registered){unregisterReceiver(changed);registered=false;}super.onPause();}
  @Override public void onDestroy(){flushSettings();settingsHandler.removeCallbacksAndMessages(null);if(store!=null)store.close();super.onDestroy();}
  int themeColor(int attribute){android.util.TypedValue value=new android.util.TypedValue();getTheme().resolveAttribute(attribute,value,true);return value.data;}
@@ -193,7 +192,6 @@ public class MainActivity extends Activity {
   add(capture,text(live?"●  Capture enabled":"○  Capture is off",16,live?SUCCESS:MUTED,true));gap(capture,6);
   add(capture,text(live?"New "+card.issuer+" alerts naming this card are added here. Existing messages are never read."
    :card.capture?"Turn capture on for this device in All cards → Settings.":"Automatic capture is off for this card. Turn it on in Settings below.",13,MUTED,false));
-  if(!CaptureMode.SMS&&live){gap(capture,6);add(capture,text("Android may hide alerts grouped with an OTP. Clear that conversation’s notifications before the next alert. Paste any missed purchase in Activity after checking for an existing entry.",13,CORAL,false));}
   if(g.getLong("lastCaptured",0)>0)add(capture,text("Last captured purchase on any card: "+Instant.ofEpochMilli(g.getLong("lastCaptured",0)).atZone(ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("d MMM, h:mm a")),12,MUTED,false));
   if(g.getBoolean("captureError",false))add(capture,text("A transaction may have been missed. Check Activity and add it manually.",13,CORAL,true));
   add(body,button("Add purchase",v->edit(null)));
@@ -404,27 +402,15 @@ public class MainActivity extends Activity {
   * screen. */
  void deviceSettings(){
   LinearLayout capture=card(body,SURFACE);add(capture,text("Automatic capture",23,INK,true));gap(capture,8);
-  add(capture,text(CaptureMode.SMS?"Capture new transaction SMS for your cards. Existing messages are never read.":"Capture transaction notifications from one SMS messaging app. Existing messages are never read.",13,MUTED,false));
-  if(!CaptureMode.SMS){
-   String selected=SmsApps.selected(this);selectedPackages=new HashSet<>();if(!selected.isEmpty())selectedPackages.add(selected);
-   TextView sources=text(sourceNames(),12,MUTED,false);gap(capture,8);add(capture,sources);add(capture,button("Choose SMS messaging app",v->chooseSources(sources)));
-   add(capture,text("Android may hide alerts grouped with an OTP. Clear that conversation’s notifications before the next alert. Paste any missed purchase in Activity after checking for an existing entry.",13,CORAL,false));
-  }
-  Switch enabled=new Switch(this);enabled.setText(CaptureMode.SMS?"Capture new transaction SMS":"Capture new transaction notifications");enabled.setChecked(g.getBoolean("capture",false)&&access());enabled.setPadding(0,dp(10),0,dp(10));add(capture,enabled);
+  add(capture,text("Capture new transaction SMS for your cards. Existing messages are never read.",13,MUTED,false));
+  Switch enabled=new Switch(this);enabled.setText("Capture new transaction SMS");enabled.setChecked(g.getBoolean("capture",false)&&access());enabled.setPadding(0,dp(10),0,dp(10));add(capture,enabled);
   enabled.setOnCheckedChangeListener((view,checked)->{
    if(!checked){g.edit().putBoolean("capture",false).apply();return;}
    if(!Cards.anyReady(this)){enabled.setChecked(false);toast("First give a card its bank and last four digits.");return;}
-   if(!CaptureMode.SMS&&(selectedPackages.size()!=1||!SmsApps.installed(this).containsKey(selectedPackages.iterator().next()))){enabled.setChecked(false);toast("Choose one installed SMS messaging app.");return;}
-   if(!access()){
-    enabled.setChecked(false);if(CaptureMode.SMS)requestSmsAccess(true);else requestNotificationAccess(true);return;
-   }
+   if(!access()){enabled.setChecked(false);requestSmsAccess(true);return;}
    startCapture();
   });
-  if(CaptureMode.SMS){
-   add(capture,button(access()?"SMS permission enabled · manage":"Enable SMS permission",v->{if(access())openAppSettings();else requestSmsAccess(false);}));
-  }else{
-   add(capture,button(access()?"Notification access enabled · manage":"Enable Android notification access",v->requestNotificationAccess(false)));
-  }
+  add(capture,button(access()?"SMS permission enabled · manage":"Enable SMS permission",v->{if(access())openAppSettings();else requestSmsAccess(false);}));
   add(capture,text("Each card decides whether its own alerts are added, in that card's Settings.",12,MUTED,false));
   appearance();
   LinearLayout everything=card(body,SURFACE);add(everything,text("Everything on this phone",23,INK,true));gap(everything,8);
@@ -433,10 +419,6 @@ public class MainActivity extends Activity {
   add(everything,button("Restore everything",v->restoreEverything()));
   LinearLayout about=card(body,SURFACE);add(about,text("About",23,INK,true));gap(about,8);
   add(about,text("Cards Ledger "+appVersion()+"\nTrack spending and rewards across your credit cards. Independent, and not affiliated with any bank.\n\nEach card keeps its own ledger, merchant mappings and reward plan on this phone. The app has no internet permission.",13,MUTED,false));
- }
- String sourceNames(){
-  if(selectedPackages.isEmpty())return "No SMS messaging app selected";
-  String pkg=selectedPackages.iterator().next();return "Selected: "+SmsApps.installed(this).getOrDefault(pkg,pkg);
  }
  void watchSetting(EditText field,Runnable save){
   Runnable commit=()->{settingWrites.remove(field);save.run();};
@@ -467,29 +449,14 @@ public class MainActivity extends Activity {
  // Capture may start as soon as any card is set up.
  boolean savedCardReady(){return Cards.anyReady(this);}
  // Capture is one device-wide switch shared by every card.
- void startCapture(){g.edit().putBoolean("capture",true).putBoolean("captureError",false).putString("captureEdition",CaptureMode.ID).putLong("started",System.currentTimeMillis()).apply();CaptureMode.enabled();}
- void chooseSources(TextView display){
-  Map<String,String> apps=SmsApps.installed(this);
-  if(apps.isEmpty()){toast("No SMS messaging app found. Install or enable one in Android Settings.");return;}
-  List<String> packages=new ArrayList<>(apps.keySet());packages.sort((a,b)->apps.get(a).compareToIgnoreCase(apps.get(b)));
-  String[] labels=new String[packages.size()];int selected=-1;for(int i=0;i<labels.length;i++){labels[i]=apps.get(packages.get(i));if(selectedPackages.contains(packages.get(i)))selected=i;}
-  new AlertDialog.Builder(this).setTitle("Choose one SMS messaging app").setSingleChoiceItems(labels,selected,(dialog,index)->{
-   Set<String> next=new HashSet<>(Collections.singleton(packages.get(index)));boolean changed=!g.getStringSet("packages",Collections.emptySet()).equals(next);
-   selectedPackages=next;g.edit().putStringSet("packages",new HashSet<>(next)).apply();display.setText(sourceNames());if(changed&&g.getBoolean("capture",false)&&access())startCapture();dialog.dismiss();
-  }).setNegativeButton("Close",null).show();
- }
+ void startCapture(){g.edit().putBoolean("capture",true).putBoolean("captureError",false).putString("captureEdition",CaptureMode.ID).putLong("started",System.currentTimeMillis()).apply();}
  void openAppSettings(){try{startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));}catch(Exception ignored){toast("Open Android Settings → Apps → Cards Ledger.");}}
- void requestNotificationAccess(boolean enableAfterGrant){
-  pendingNotificationEnable=enableAfterGrant;
-  new AlertDialog.Builder(this).setTitle("Allow notification access").setMessage("Cards Ledger checks transaction alerts from your selected SMS app. Android grants broad notification access. Unrelated alerts and OTPs are ignored locally. You can revoke access at any time.\n\nFor a sideloaded app, Android may require App info → ⋮ → Allow restricted settings first.").setNegativeButton("Cancel",(dialog,which)->pendingNotificationEnable=false).setOnCancelListener(dialog->pendingNotificationEnable=false).setPositiveButton("Open settings",(dialog,which)->{try{startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));}catch(Exception ignored){pendingNotificationEnable=false;toast("Open Android Settings → Notification access.");}}).show();
- }
  void requestSmsAccess(boolean enableAfterGrant){
-  if(!CaptureMode.SMS)return;
   pendingSmsEnable=enableAfterGrant;
   new AlertDialog.Builder(this).setTitle("Allow new SMS capture?").setMessage("Android grants access to new incoming SMS from all senders. Cards Ledger keeps only messages that name one of your cards' banks and end in its four digits, ignores OTPs and everything else, and stores the transaction details on this phone.\n\nExisting messages are never read. The app cannot send SMS and has no internet permission. You can revoke SMS access in Android Settings.").setNegativeButton("Not now",(dialog,which)->pendingSmsEnable=false).setOnCancelListener(dialog->pendingSmsEnable=false).setPositiveButton("Continue",(dialog,which)->requestPermissions(new String[]{"android.permission.RECEIVE_SMS"},73)).show();
  }
  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){
-  super.onRequestPermissionsResult(request,permissions,results);if(request!=73||!CaptureMode.SMS)return;
+  super.onRequestPermissionsResult(request,permissions,results);if(request!=73)return;
   boolean enable=pendingSmsEnable;pendingSmsEnable=false;
   if(access()){
    if(enable&&savedCardReady())startCapture();

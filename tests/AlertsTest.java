@@ -1,6 +1,5 @@
 import in.local.cards.Alerts;
 import in.local.cards.Engine;
-import in.local.cards.NotificationCapture;
 import in.local.cards.SmsCapture;
 import java.time.*;
 import java.util.*;
@@ -157,21 +156,6 @@ public class AlertsTest {
    "an SMS from a bank with no card is ignored");
   check(Alerts.routeSms(null,NOW-1000,NOW,-1,CARDS)==null,"no parts means no match");
 
-  // Notifications: the bank token goes into the title, which neither the replay cache key nor the
-  // event fingerprint is built from.
-  NotificationCapture.Envelope envelope=new NotificationCapture.Envelope();
-  envelope.source="com.example.messages";envelope.key="0|com.example.messages|1|null|10";envelope.posted=NOW;
-  envelope.title="AD-AXISBK";
-  envelope.bigText="INR 500.00 spent on Axis Bank Credit Card XX5678 at CAFE on 21-11-2026";
-  check(Alerts.accepts(envelope,AXIS),"the Axis card accepts an Axis notification");
-  check(!Alerts.accepts(envelope,HSBC),"the HSBC card ignores an Axis notification");
-  check(NotificationCapture.cacheKey(Alerts.withGate(envelope,"Axis")).equals(NotificationCapture.cacheKey(envelope)),
-   "gating a notification leaves its replay cache key alone");
-  NotificationCapture.Batch batch=NotificationCapture.collect(Alerts.withGate(envelope,"Axis"),"5678",NOW-1000,null);
-  check(batch.candidates.size()==1,"a gated notification yields one candidate");
-  check(batch.candidates.get(0).transaction.amount==50000,"the candidate carries the purchase");
-  check(NotificationCapture.collect(envelope,"5678",NOW-1000,null).candidates.isEmpty(),
-   "without the card's bank gate Engine's parser rejects another bank outright");
   return checks;
  }
  public static void main(String[] args){System.out.println("AlertsTest: "+run()+" checks");}

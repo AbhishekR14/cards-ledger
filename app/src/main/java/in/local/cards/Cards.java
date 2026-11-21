@@ -9,8 +9,8 @@ import java.util.*;
  * <p>Three kinds of state live in three places:
  *
  * <ul>
- * <li><b>Global</b> ({@code app}): capture on/off, the chosen SMS app, the notification replay
- *     cache and the theme: everything the device holds once, whatever the card. This is what
+ * <li><b>Global</b> ({@code app}): capture on/off, when it started and the theme: everything
+ *     the device holds once, whatever the card. This is what
  *     {@link Store#prefs(Context)} returns, so the capture code reads it directly.</li>
  * <li><b>Per card</b> ({@code settings}, {@code settings-2}, …): last four digits, statement day,
  *     cap and reward plan, written by the card's own Settings screen.</li>
@@ -163,12 +163,6 @@ public final class Cards {
    else if(value instanceof Boolean)shared.putBoolean(key,(Boolean)value);
    else if(value instanceof Long)shared.putLong(key,(Long)value);
    else if(value instanceof Integer)shared.putInt(key,(Integer)value);
-  }
-  Object packages=first.getAll().get("packages");
-  if(packages instanceof Set){
-   Set<String> copy=new HashSet<>();
-   for(Object entry:(Set<?>)packages)copy.add(String.valueOf(entry));
-   shared.putStringSet("packages",copy);
   }
   CardBook book=new CardBook();
   if(!first.getString("last4","").isEmpty()){

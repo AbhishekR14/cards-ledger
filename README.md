@@ -92,7 +92,7 @@ The APK builds on Windows with JDK 17 and Android SDK Platform 35 and Build-Tool
 Gradle or Android Studio required:
 
 ```powershell
-./build.ps1 -Edition sms
+./build.ps1
 ```
 
 See [Development](docs/DEVELOPMENT.md) for the details.
