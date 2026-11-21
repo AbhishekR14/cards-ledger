@@ -24,7 +24,7 @@ Install **one** edition; they have the same ledger features and differ only in h
 
 **These are test builds, not releases.** Each workflow run signs with a newly generated key, so a later test build will not install over an earlier one — uninstall the previous test build first, exporting a backup from each card beforehand if you want to keep its ledger. Proper releases go through `release.yml`, which needs a retained signing key in the repository secrets.
 
-To build one yourself: **Actions → Test build APKs → Run workflow**, or push to the development branch. A fork starts with Actions switched off, so the first run needs them enabled on the **Actions** tab. Building locally needs Windows PowerShell, JDK 17 and Android SDK 35: `./build.ps1 -Edition notifications`.
+To build a fresh one: **Actions → Test build APKs → Run workflow**, or push to the development branch. Building locally needs Windows PowerShell, JDK 17 and Android SDK 35: `./build.ps1 -Edition notifications`.
 
 The rest of this page is upstream's, and describes the HSBC Live+ card.
 
