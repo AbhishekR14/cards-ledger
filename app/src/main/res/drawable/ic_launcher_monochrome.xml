@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 13 themed icons tint this single-colour layer to match the wallpaper. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+  <!-- The glyph is drawn on a 66dp grid and scaled to 74% around the centre, leaving a margin
+       inside every launcher mask, circle included. -->
+  <group android:pivotX="54" android:pivotY="54" android:scaleX="0.74" android:scaleY="0.74">
+    <path
+        android:pathData="M59.08,40.92A18.5,18.5 0 1 0 59.08,67.08"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="11"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M68,54H82M75,47V61"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="9"
+        android:strokeLineCap="round" />
+  </group>
+</vector>

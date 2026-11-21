@@ -1,11 +1,17 @@
-# Cards Ledger
+<p align="center">
+  <img src="docs/assets/icon.png" width="96" height="96" alt="Cards Ledger">
+</p>
 
-**Track spending and rewards across all your credit cards — offline, on your phone.**
+<h1 align="center">Cards Ledger</h1>
 
-[![Latest release](https://img.shields.io/github/v/release/AbhishekR14/cards-ledger?label=release)](https://github.com/AbhishekR14/cards-ledger/releases/latest)
-![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
-[![Tests](https://github.com/AbhishekR14/cards-ledger/actions/workflows/tests.yml/badge.svg)](https://github.com/AbhishekR14/cards-ledger/actions/workflows/tests.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+<p align="center"><strong>Track spending and rewards across all your credit cards — offline, on your phone.</strong></p>
+
+<p align="center">
+  <a href="https://github.com/AbhishekR14/cards-ledger/releases/latest"><img src="https://img.shields.io/github/v/release/AbhishekR14/cards-ledger?label=release" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 8.0+">
+  <a href="https://github.com/AbhishekR14/cards-ledger/actions/workflows/tests.yml"><img src="https://github.com/AbhishekR14/cards-ledger/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
+</p>
 
 Cards Ledger reads the transaction alerts your banks already send, files each purchase under the
 right card, and estimates the cashback or points it earns under that card's own rules. There is no

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher icon foreground: C+, for Cards. Everything sits inside the 66dp safe zone
+     (21 to 87 on this 108 grid), so no launcher mask clips it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+  <!-- The glyph is drawn on a 66dp grid and scaled to 74% around the centre, leaving a margin
+       inside every launcher mask, circle included. -->
+  <group android:pivotX="54" android:pivotY="54" android:scaleX="0.74" android:scaleY="0.74">
+    <!-- The C: a thick arc around (46,54), open to the right, with rounded ends. -->
+    <path
+        android:pathData="M59.08,40.92A18.5,18.5 0 1 0 59.08,67.08"
+        android:strokeColor="#FFB9EDCC"
+        android:strokeWidth="11"
+        android:strokeLineCap="round" />
+    <!-- The plus. -->
+    <path
+        android:pathData="M68,54H82M75,47V61"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="9"
+        android:strokeLineCap="round" />
+  </group>
+</vector>

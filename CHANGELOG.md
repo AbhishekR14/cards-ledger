@@ -42,3 +42,5 @@ The first release.
 - Material You colours from the wallpaper on Android 12 and newer, light and dark themes following
   the system, rounded dialogs and filled text fields, and motion throughout that respects Android's
   Remove animations setting.
+- An adaptive C+ launcher icon that fits every launcher's shape, with a themed variant for
+  Android 13 and newer.
