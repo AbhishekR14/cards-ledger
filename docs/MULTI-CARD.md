@@ -116,10 +116,17 @@ card's own merchant mappings until you set one, and anything unknown waits in re
 
 ## Installing a test build
 
-Both editions are published by the **Test build APKs** workflow as the `test-build` prerelease:
-[notifications edition](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-Notifications.apk),
-[SMS edition](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk).
-Install one of them, not both.
+The **Test build APKs** workflow publishes
+[Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk)
+as the `test-build` prerelease. It captures purchases from new incoming SMS.
+
+Chrome blocks APK downloads behind a *"This type of file can harm your device"* prompt — tap
+**Download anyway** — and release assets often will not download inside the GitHub mobile app, so
+open the link in a browser.
+
+Upstream's notification-capture edition is still in the tree and still builds with
+`./build.ps1 -Edition notifications`; this fork does not publish it. Install only one of the two
+on a phone: they share an app identity.
 
 Every run of that workflow generates its own signing key, so test builds cannot replace each
 other: uninstall the previous one first, after exporting a backup from each card. Once you want

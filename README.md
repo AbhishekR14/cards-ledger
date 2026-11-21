@@ -1,117 +1,78 @@
 # Cards Ledger
 
-An offline Android app for tracking spending and estimated rewards across **several Indian credit cards**, one tile per card.
+An offline Android app for tracking spending and estimated rewards across **several Indian credit cards** — one tile per card, each with its own ledger, merchant mappings and reward rules.
 
 A fork of [chetanatole/hsbc-liveplus-ledger](https://github.com/chetanatole/hsbc-liveplus-ledger), which tracks a single HSBC Live+ card. That card is one tile here and keeps upstream's own parser, categories and cashback maths; the rest of this app is the shell around it.
 
-- **[Using several cards](docs/MULTI-CARD.md)** — the card grid, reward plans, how an alert finds its card, and moving over from Live+ Ledger.
-- **[Keeping this fork in sync](docs/FORK-SYNC.md)** — pulling upstream changes, and which files this fork touches.
-
-Each card keeps its own ledger, merchant mappings, statement period and reward plan. Rates are yours to enter: a percentage per category, points per block of spend, a cap on rewards or on qualifying spend. The HSBC Live+ plan ships as a preset.
-
-The app installs as **Cards Ledger** (`in.local.cards`) and sits alongside Live+ Ledger rather than replacing it; move your data across with a JSON backup.
-
-## Download a test build
-
-The **Test build APKs** workflow builds both editions on every push to the development branch and publishes them here:
-
-| Download | Access it asks for |
-| --- | --- |
-| **[Cards-Ledger-Notifications.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-Notifications.apk)** | Notification access; no SMS permission |
-| **[Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk)** | `RECEIVE_SMS` for new incoming messages; no notification access |
-
-Install **one** edition; they have the same ledger features and differ only in how purchases are captured. See [installation and troubleshooting](docs/INSTALLATION.md) for sideloading, Play Protect and permission prompts.
-
-**These are test builds, not releases.** Each workflow run signs with a newly generated key, so a later test build will not install over an earlier one — uninstall the previous test build first, exporting a backup from each card beforehand if you want to keep its ledger. Proper releases go through `release.yml`, which needs a retained signing key in the repository secrets.
-
-To build a fresh one: **Actions → Test build APKs → Run workflow**, or push to the development branch. Building locally needs Windows PowerShell, JDK 17 and Android SDK 35: `./build.ps1 -Edition notifications`.
-
-The rest of this page is upstream's, and describes the HSBC Live+ card.
-
----
-
-See accelerated-category spend, estimated cashback and remaining room under your configured cap. No bank login or full card number is required.
-
 **Android 8.0+ · Native Java · On-device storage · No internet permission**
 
-Independent project; not affiliated with HSBC. Merchant classifications, posting dates and card terms determine actual cashback.
-
-[APK releases](https://github.com/chetanatole/hsbc-liveplus-ledger/releases) · [Installation](docs/INSTALLATION.md) · [MIT License](LICENSE)
+Independent project, not affiliated with any bank. Merchant classifications, posting dates and card terms decide the rewards actually paid.
 
 ## Download
 
-Starting with **1.0.3**, releases provide two APKs. Choose the access method you are comfortable granting:
+**[Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk)** — the current test build ([release page](https://github.com/AbhishekR14/cards-ledger/releases/tag/test-build), ~91 KB).
 
-| Download | Access | How capture works |
-| --- | --- | --- |
-| **[LivePlus-Ledger-Notifications.apk](https://github.com/chetanatole/hsbc-liveplus-ledger/releases/latest/download/LivePlus-Ledger-Notifications.apk)** | Notification access; **no SMS permission** | Checks new notifications from one selected SMS messaging app. Choose this if you prefer not to grant SMS access. |
-| **[LivePlus-Ledger-SMS.apk](https://github.com/chetanatole/hsbc-liveplus-ledger/releases/latest/download/LivePlus-Ledger-SMS.apk)** | `RECEIVE_SMS`; **no notification access** | Checks new incoming SMS delivered after capture is enabled. Choose this if you are comfortable granting incoming-SMS access. |
+It records purchases from **new incoming SMS**: it never reads your inbox, never sends messages, and asks for no notification access.
 
-**Neither edition reads existing SMS, scans your inbox or sends messages.** The SMS edition does not request `READ_SMS`; incoming access covers all senders, with HSBC/card filtering performed locally. OTPs and unrelated messages are discarded, and only transaction details are saved. Both editions have the same ledger features and no internet permission.
+If the download will not start, it is the browser rather than the link. Chrome blocks APK files with *"This type of file can harm your device"* — tap **Download anyway**, then open the file from **Downloads** and allow installs from that app when Android asks. Release assets often fail to download inside the GitHub mobile app; open the link in a browser instead.
 
-Notification capture can miss purchase alerts grouped with an unread OTP because Android hides the content. Clear that conversation's notifications before later alerts, or paste a missed purchase. Direct SMS avoids notification grouping, but Android SMS permission and OTP restrictions still apply; RCS is not supported by the SMS receiver.
+**This is a test build, not a release.** Every build signs with a newly generated key, so the next one will not install over it — uninstall the previous build first, exporting a backup from each card if you want to keep its ledger. Proper releases go through `release.yml`, which needs a retained signing key in the repository secrets.
 
-Both APKs appear on your phone as **Live+ Ledger**. The names above distinguish downloads only.
+## What it does
 
-Install **one edition at a time**. Both share the app identity and signing key; a compatible edition switch preserves local data and turns capture off until you enable the new method. See [edition details](docs/EDITIONS.md) and [step-by-step installation](docs/INSTALLATION.md). Older releases use `LivePlus-Ledger.apk` for the notification-based app.
+- **A grid of cards.** Each tile shows that card's rewards this period, its progress against the cap, and anything waiting for review. Tap a tile to open the card; press and hold to rename, recolour, reorder or remove it.
+- **A ledger per card.** Transactions, refunds, duplicates, merchant mappings, statement period and backups stay separate.
+- **Reward rules you enter yourself.** Each category earns a percentage or points per block of spend; mark the ones that share a cap; cap either the rewards earned or the qualifying spend. Presets for HSBC Live+, accelerated cashback, flat cashback and reward points, and plans import and export as JSON.
+- **Capture routed by card.** One switch for the phone and a toggle per card. An alert goes to the card whose bank *and* last four digits both match, so a purchase is never counted twice.
+- **Review before it counts.** Suggested categories are provisional; unknown categories and possible duplicates stay out of the estimate until you confirm them, and refunds need linking to their purchase.
+- Manual entry, pasted alerts, JSON backup and restore, light and dark themes.
 
-## Features
+[Using several cards](docs/MULTI-CARD.md) covers the reward-plan format and the routing rules in full.
 
-- Track accelerated spending, estimated cashback and remaining room under the cashback cap.
-- View spending history by calendar month or statement period.
-- Automatically capture matching HSBC purchases through your chosen Notifications or SMS edition.
-- Suggest spending categories and manage your own merchant-to-category mappings.
-- Review uncertain transactions and possible duplicates, and link full or partial refunds.
-- Add purchases manually or import pasted transaction alerts.
-- Export and restore JSON backups.
-- Light and dark mode support.
+## Setting it up
 
-## Screenshots
+1. Install the APK on Android 8.0 or newer and open it.
+2. Tap **+** and give the card a name, the bank as its messages write it (`HSBC`, `Axis`, `ICICI`), its last four digits, the statement closing day, and the closest reward preset.
+3. **Settings** on the home screen → turn capture on and approve Android's incoming-SMS permission.
+4. Open the card → **Settings → Reward plan** to set its rates exactly.
 
-| Overview | Activity |
-| --- | --- |
-| <img src="docs/screenshots/overview-v1.0.3.jpg" width="280" alt="Overview with eligible spend, category cashback breakdown and remaining accelerated spend"> | <img src="docs/screenshots/activity-v1.0.3.jpg" width="280" alt="Activity with merchant transactions, cashback categories and purchase, paste and review controls"> |
+Capture is optional: adding a purchase by hand or pasting an alert works without granting anything. See [installation and troubleshooting](docs/INSTALLATION.md) for sideloading, Play Protect and permission prompts.
 
-## Install and set up
+### Coming from Live+ Ledger
 
-Download your chosen APK from a [release](https://github.com/chetanatole/hsbc-liveplus-ledger/releases), or build it from source.
+Cards Ledger installs as `in.local.cards`, beside the old app rather than over it. Export a backup there, add the card here with the **HSBC Live+** preset, then restore into it — the add-card flow offers this directly. [The full steps](docs/MULTI-CARD.md#coming-from-live-ledger).
 
-1. Install the chosen edition on Android 8.0 or newer, then open it.
-2. Enter only your card's last four digits and configure the reward period/cashback cap.
-3. **Notifications:** choose one SMS messaging app, turn on capture and grant notification access when prompted.
-4. **SMS:** turn on capture, read the disclosure and approve Android's incoming-SMS permission. No source-app selection or notification access is needed.
+## Privacy
 
-Automatic capture is optional. Manual entry and Paste alert work without either capture permission. See [installation and troubleshooting](docs/INSTALLATION.md) for permission denial, installer restrictions, OTP redaction and Play Protect prompts.
+Everything stays in the app's private storage on the phone: no internet permission, no analytics, no advertising SDKs, no inbox access. The app does not request `READ_SMS`; it sees only messages delivered after you turn capture on, filters them on the device, and keeps nothing but the transaction details. OTPs, declines and repayments are discarded. RCS messages are not delivered to an SMS receiver, so they are not captured. [PRIVACY.md](PRIVACY.md) has the detail.
 
 ## Build and test
 
-APK builds require Windows PowerShell, JDK 17, Android SDK Platform 35 and Build-Tools 35.0.0.
+The parser, reward and routing suites need only a JDK and run anywhere:
+
+```sh
+./tools/test.sh            # or: pwsh ./tools/test.ps1
+```
+
+APKs need Windows PowerShell, JDK 17, Android SDK Platform 35 and Build-Tools 35.0.0:
 
 ```powershell
-./tools/build-all.ps1 `
+./build.ps1 -Edition sms `
   -JavaHome 'C:/path/to/jdk-17' `
   -AndroidJar 'C:/path/to/Android/Sdk/platforms/android-35/android.jar' `
   -BuildTools 'C:/path/to/Android/Sdk/build-tools/35.0.0'
 ```
 
-Outputs: `build/LivePlus-Ledger-Notifications.apk`, `build/LivePlus-Ledger-SMS.apk` and `build/SHA256SUMS.txt`. To build one edition, use `./build.ps1 -Edition notifications` or `./build.ps1 -Edition sms` with the same tool paths. Android Studio, an emulator and Gradle are not required.
+That writes `build/Cards-Ledger-SMS.apk`. Upstream's notification-capture edition still builds with `-Edition notifications`; this fork simply does not publish it. No Gradle, Android Studio or emulator is involved.
 
-Run parser and calculation tests with a JDK:
+In CI, **Actions → Test build APKs** builds and publishes the APK, and a push to the development branch does the same.
 
-```powershell
-./tools/test.ps1 -JavaHome 'C:/path/to/jdk-17'
-```
+Further reading: [development](docs/DEVELOPMENT.md), [device testing](DEVICE-CHECK.md), [releases](docs/RELEASING.md), [reward assumptions for the HSBC card](docs/REWARDS.md), [merchant catalogue](docs/MERCHANTS.md), [capture editions](docs/EDITIONS.md).
 
-See [development](docs/DEVELOPMENT.md), [device testing](DEVICE-CHECK.md) and [APK releases](docs/RELEASING.md).
+## Keeping the fork current
 
-## Rewards and privacy
-
-The default accelerated cashback cap is ₹1,200. See [reward assumptions](docs/REWARDS.md) for categories, exclusions and the applicable reference date.
-
-Suggested categories are provisional. Unknown categories and possible duplicates are excluded until reviewed. Refunds require linking to an original purchase.
-
-Both editions store data on the device and have no internet permission, analytics, advertising SDKs or SMS inbox access. Read [PRIVACY.md](PRIVACY.md) for each edition's access, new-SMS-only handling, stored fields, backups and deletion.
+`main` mirrors upstream untouched and the work sits on a development branch; upstream files carry a `// MULTI-CARD:` comment wherever this fork edits them, and `Engine.java` is not edited at all. [docs/FORK-SYNC.md](docs/FORK-SYNC.md) has the merge sequence and which side to prefer per file; `tools/sync-upstream.ps1` runs it.
 
 ## Contributing and license
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under the [MIT License](LICENSE).
+[CONTRIBUTING.md](CONTRIBUTING.md) · [MIT License](LICENSE)

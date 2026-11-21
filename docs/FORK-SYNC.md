@@ -55,7 +55,8 @@ every such edit carries a `// MULTI-CARD:` comment so a conflict hunk is immedia
 | `app/src/notifications/java/in/local/liveplus/AlertListener.java` | Routes one alert across all cards |
 | `app/src/sms/java/in/local/liveplus/SmsReceiver.java` | Same, for incoming SMS |
 | `app/src/main/AndroidManifest.xml` | App identity, label, launcher activity |
-| `build.ps1`, `tools/test.ps1` | Added test sources and the extra test runner |
+| `build.ps1`, `tools/test.ps1`, `tools/build-all.ps1` | Added test sources, the extra test runner and the renamed APK |
+| `README.md`, `CHANGELOG.md` | Rewritten for this fork: keep this side, and fold in anything upstream adds |
 
 ## Two things worth knowing before your first merge
 

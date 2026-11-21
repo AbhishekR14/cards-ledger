@@ -1,9 +1,10 @@
 name: Test build APKs
 
-# Builds both editions on a Windows runner and publishes them as a prerelease you can install
+# Builds the SMS edition on a Windows runner and publishes it as a prerelease you can install
 # from your phone. No repository secrets are needed: build.ps1 generates a personal signing key
 # when none is present, so every run signs with a new key. Releasing properly is release.yml,
-# which needs a retained key.
+# which needs a retained key. Upstream's notification edition still builds locally with
+# ./build.ps1 -Edition notifications; this fork does not publish it.
 
 on:
   push:
@@ -53,9 +54,13 @@ jobs:
           & $manager.FullName 'platforms;android-35' 'build-tools;35.0.0'
           if ($LASTEXITCODE -ne 0) { throw 'Android SDK package installation failed.' }
           "ANDROID_SDK_ROOT=$sdk" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Build, test and verify both APK editions
-        run: ./tools/build-all.ps1
-      - name: Publish the test APKs
+      - name: Build, test and verify the SMS edition
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./build.ps1 -Edition sms
+          $hash = (Get-FileHash -LiteralPath 'build/Cards-Ledger-SMS.apk' -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText((Join-Path $PWD 'build/SHA256SUMS.txt'),"$hash  Cards-Ledger-SMS.apk"+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
+      - name: Publish the test APK
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
@@ -69,12 +74,9 @@ jobs:
           $lines = @(
             "Test build of Cards Ledger $version from $env:GITHUB_REF_NAME at $short.",
             '',
-            'Install **one** edition. Both have the same ledger features and differ only in how purchases are captured.',
+            'It records purchases from new incoming SMS. It asks for RECEIVE_SMS and nothing else: no notification access, no READ_SMS, no internet permission.',
             '',
-            '| Download | Access it asks for |',
-            '| --- | --- |',
-            '| **Cards-Ledger-Notifications.apk** | Notification access, no SMS permission |',
-            '| **Cards-Ledger-SMS.apk** | RECEIVE_SMS for new incoming messages, no notification access |',
+            'If the download will not start, that is the browser rather than the link. Chrome blocks APK files with "This type of file can harm your device" - tap Download anyway. Release assets often fail to download inside the GitHub mobile app.',
             '',
             '**This is a test build, not a release.** Every run of this workflow signs with a newly generated key, so a later test build will not install over this one. Uninstall the previous test build first, exporting a backup from each card beforehand if you want to keep its ledger.',
             '',
@@ -83,7 +85,7 @@ jobs:
           [IO.File]::WriteAllText((Join-Path $PWD 'build/NOTES.md'),($lines -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
           & gh release delete $tag --repo $env:GITHUB_REPOSITORY --yes --cleanup-tag 2>$null
           $global:LASTEXITCODE = 0
-          & gh release create $tag 'build/Cards-Ledger-Notifications.apk' 'build/Cards-Ledger-SMS.apk' 'build/SHA256SUMS.txt' `
+          & gh release create $tag 'build/Cards-Ledger-SMS.apk' 'build/SHA256SUMS.txt' `
             --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --prerelease `
             --title "Cards Ledger $version test build" --notes-file 'build/NOTES.md'
           if ($LASTEXITCODE -ne 0) { throw 'Publishing the test release failed.' }
