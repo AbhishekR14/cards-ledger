@@ -175,7 +175,7 @@ final class PlanEditor {
   return out.toString().trim();
  }
  private RewardPlan rebuild(RewardPlan plan,List<RewardPlan.Category> categories){
-  return new RewardPlan("custom".equals(plan.id)?plan.id:"custom",plan.name,plan.unit,plan.capBasis,plan.capAmount,plan.pointValuePaise,categories);
+  return new RewardPlan(plan.id,plan.name,plan.unit,plan.capBasis,plan.capAmount,plan.pointValuePaise,categories);
  }
  private void save(RewardPlan plan){
   Cards.savePlan(host,host.cardId,plan);

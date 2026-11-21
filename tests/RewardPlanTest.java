@@ -22,6 +22,26 @@ public class RewardPlanTest {
   check(hsbc.category(7)==null,"an index past the plan reads as unknown");
   check(hsbc.singleCappedRate()!=null&&hsbc.singleCappedRate().rateBps==1000,"one capped rate, so headroom is expressible as spend");
 
+  // Built-in merchant suggestions follow the category list, since that is what their numbers
+  // mean. Editing a rate or the cap keeps them; renaming or reshaping the list drops them.
+  check(hsbc.matchesBuiltInCategories(),"the preset matches upstream's categories");
+  check(hsbc.withCap(50000).matchesBuiltInCategories(),"changing the cap keeps the built-in categories");
+  check(RewardPlan.fromJson(hsbc.toJson()).matchesBuiltInCategories(),"a round trip keeps the built-in categories");
+  check(!RewardPlan.flatCashback().matchesBuiltInCategories(),"another plan does not claim upstream's categories");
+  check(!RewardPlan.rewardPoints().matchesBuiltInCategories(),"a points plan does not claim upstream's categories");
+  List<RewardPlan.Category> renamed=new ArrayList<>(hsbc.categories);
+  renamed.set(1,new RewardPlan.Category("Supermarkets",1000,true,false));
+  check(!new RewardPlan(hsbc.id,hsbc.name,hsbc.unit,hsbc.capBasis,hsbc.capAmount,0,renamed).matchesBuiltInCategories(),
+   "renaming a category drops the built-in suggestions, whatever the plan's id says");
+  List<RewardPlan.Category> rerated=new ArrayList<>(hsbc.categories);
+  rerated.set(0,new RewardPlan.Category("Dining / food delivery",500,true,false));
+  check(new RewardPlan(hsbc.id,hsbc.name,hsbc.unit,hsbc.capBasis,hsbc.capAmount,0,rerated).matchesBuiltInCategories(),
+   "changing a rate keeps the built-in suggestions");
+  List<RewardPlan.Category> shortened=new ArrayList<>(hsbc.categories);
+  shortened.remove(2);
+  check(!new RewardPlan(hsbc.id,hsbc.name,hsbc.unit,hsbc.capBasis,hsbc.capAmount,0,shortened).matchesBuiltInCategories(),
+   "removing a category drops the built-in suggestions");
+
   check(RewardPlan.percent(1000).equals("10%"),"whole percentages drop the decimal");
   check(RewardPlan.percent(150).equals("1.5%"),"fractional percentages keep one decimal");
   check(RewardPlan.percent(0).equals("0%"),"a zero rate reads as 0%");

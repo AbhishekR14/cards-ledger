@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
  final Map<EditText,Runnable> settingWrites=new LinkedHashMap<>();
  SharedPreferences p; Store store; LinearLayout root,body,nav; String tab="Overview"; boolean reviewOnly=false; LocalDate anchor=LocalDate.now(ZoneId.of("Asia/Kolkata"));
  // MULTI-CARD: p and store belong to one card; g holds the device-wide capture and theme state.
- SharedPreferences g; CardBook.Card card; RewardPlan plan; int cardId; boolean device;
+ SharedPreferences g; CardBook.Card card; RewardPlan plan; int cardId; boolean device,registered;
  public static final String EXTRA_DEVICE="in.local.liveplus.DEVICE",EXTRA_RESTORE="in.local.liveplus.RESTORE",EXTRA_SETTINGS="in.local.liveplus.SETTINGS";
  Set<String> selectedPackages=new HashSet<>();
  ScrollView scroll;
@@ -55,8 +55,8 @@ public class MainActivity extends Activity {
   CardBook.Card current=Cards.book(this).get(cardId);
   if(current==null){finish();return;}
   card=current;plan=Cards.plan(this,cardId);
-  IntentFilter f=new IntentFilter("in.local.liveplus.CHANGED");if(Build.VERSION.SDK_INT>=33)registerReceiver(changed,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changed,f);if(pendingNotificationEnable){pendingNotificationEnable=false;if(access()&&savedCardReady())startCapture();}draw();}
- @Override public void onPause(){if(card==null){flushSettings();super.onPause();return;}flushSettings();rememberScroll();unregisterReceiver(changed);super.onPause();}
+  IntentFilter f=new IntentFilter("in.local.liveplus.CHANGED");if(Build.VERSION.SDK_INT>=33)registerReceiver(changed,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changed,f);registered=true;if(pendingNotificationEnable){pendingNotificationEnable=false;if(access()&&savedCardReady())startCapture();}draw();}
+ @Override public void onPause(){flushSettings();if(card!=null)rememberScroll();if(registered){unregisterReceiver(changed);registered=false;}super.onPause();}
  @Override public void onDestroy(){flushSettings();settingsHandler.removeCallbacksAndMessages(null);if(store!=null)store.close();super.onDestroy();}
  int themeColor(int attribute){android.util.TypedValue value=new android.util.TypedValue();getTheme().resolveAttribute(attribute,value,true);return value.data;}
  void applyPalette(){

@@ -99,6 +99,18 @@ public final class RewardPlan {
  }
  public RewardPlan withName(String newName){return new RewardPlan(id,newName,unit,capBasis,capAmount,pointValuePaise,categories);}
  public boolean pointsUnit(){return UNIT_POINTS.equals(unit);}
+ /**
+  * True when this plan's categories are still upstream's, in upstream's order, so the built-in
+  * merchant catalogue's category numbers mean here what they mean there. Rates, caps and the
+  * reward unit may differ: they do not change what a category <em>is</em>.
+  */
+ public boolean matchesBuiltInCategories(){
+  List<Category> builtIn=hsbcLivePlus().categories;
+  if(categories.size()!=builtIn.size())return false;
+  for(int i=0;i<builtIn.size();i++)
+   if(!Engine.key(categories.get(i).name).equals(Engine.key(builtIn.get(i).name)))return false;
+  return true;
+ }
 
  public static String percent(int rateBps){
   if(rateBps%100==0)return (rateBps/100)+"%";

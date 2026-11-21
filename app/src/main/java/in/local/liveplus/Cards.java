@@ -55,10 +55,10 @@ public final class Cards {
  public static void savePlan(Context context,int cardId,RewardPlan plan){
   prefs(context,cardId).edit().putString("plan",plan.toJson()).putLong("cap",plan.capAmount).apply();
  }
- /** True when the card's own suggestions may come from upstream's HSBC merchant catalogue. Other
-  * plans number their categories differently, so only the card's own mappings apply there. */
+ /** True when the card's own suggestions may come from upstream's HSBC merchant catalogue, which
+  * returns that plan's category numbers. Rates and caps may differ; the categories may not. */
  public static boolean usesBuiltInCategories(RewardPlan plan){
-  return RewardPlan.hsbcLivePlus().id.equals(plan.id);
+  return plan.matchesBuiltInCategories();
  }
 
  public static CardBook.Card create(Context context,String name,String issuer,String senders,RewardPlan plan,String last4,int statementDay,boolean capture){
