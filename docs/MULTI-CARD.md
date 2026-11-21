@@ -114,6 +114,19 @@ Merchant suggestions from the built-in catalogue apply to the **HSBC Live+ plan 
 that catalogue returns that plan's category numbers. On other cards, categories come from the
 card's own merchant mappings until you set one, and anything unknown waits in review.
 
+## Installing a test build
+
+Both editions are published by the **Test build APKs** workflow as the `test-build` prerelease:
+[notifications edition](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-Notifications.apk),
+[SMS edition](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk).
+Install one of them, not both.
+
+Every run of that workflow generates its own signing key, so test builds cannot replace each
+other: uninstall the previous one first, after exporting a backup from each card. Once you want
+builds that upgrade in place, put a keystore in the `ANDROID_KEYSTORE_BASE64` and
+`ANDROID_KEYSTORE_PASSWORD` repository secrets and tag a release, which `release.yml` signs with
+that retained key.
+
 ## Coming from Live+ Ledger
 
 Cards Ledger installs as a separate app (`in.local.cards`), so both can sit on the phone at once

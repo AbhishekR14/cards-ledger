@@ -11,6 +11,21 @@ Each card keeps its own ledger, merchant mappings, statement period and reward p
 
 The app installs as **Cards Ledger** (`in.local.cards`) and sits alongside Live+ Ledger rather than replacing it; move your data across with a JSON backup.
 
+## Download a test build
+
+The **Test build APKs** workflow builds both editions on every push to the development branch and publishes them here:
+
+| Download | Access it asks for |
+| --- | --- |
+| **[Cards-Ledger-Notifications.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-Notifications.apk)** | Notification access; no SMS permission |
+| **[Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk)** | `RECEIVE_SMS` for new incoming messages; no notification access |
+
+Install **one** edition; they have the same ledger features and differ only in how purchases are captured. See [installation and troubleshooting](docs/INSTALLATION.md) for sideloading, Play Protect and permission prompts.
+
+**These are test builds, not releases.** Each workflow run signs with a newly generated key, so a later test build will not install over an earlier one — uninstall the previous test build first, exporting a backup from each card beforehand if you want to keep its ledger. Proper releases go through `release.yml`, which needs a retained signing key in the repository secrets.
+
+To build one yourself: **Actions → Test build APKs → Run workflow**, or push to the development branch. A fork starts with Actions switched off, so the first run needs them enabled on the **Actions** tab. Building locally needs Windows PowerShell, JDK 17 and Android SDK 35: `./build.ps1 -Edition notifications`.
+
 The rest of this page is upstream's, and describes the HSBC Live+ card.
 
 ---
