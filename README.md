@@ -10,7 +10,9 @@ Independent project, not affiliated with any bank. Merchant classifications, pos
 
 ## Download
 
-**[Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk)** — the current test build ([release page](https://github.com/AbhishekR14/cards-ledger/releases/tag/test-build), ~91 KB).
+**[Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk)** — around 91 KB ([release page](https://github.com/AbhishekR14/cards-ledger/releases/tag/test-build)).
+
+That link always serves the newest build: each run of the workflow replaces the `test-build` release, so the address never changes. The release page names the commit it was built from, and `SHA256SUMS.txt` beside the APK carries its checksum.
 
 It records purchases from **new incoming SMS**: it never reads your inbox, never sends messages, and asks for no notification access.
 
