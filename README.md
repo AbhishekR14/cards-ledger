@@ -4,7 +4,7 @@
 
 <h1 align="center">Cards Ledger</h1>
 
-<p align="center"><strong>Track spending and rewards across all your credit cards — offline, on your phone.</strong></p>
+<p align="center"><strong>Track spending and rewards across all your credit cards, offline and on your phone.</strong></p>
 
 <p align="center">
   <a href="https://github.com/AbhishekR14/cards-ledger/releases/latest"><img src="https://img.shields.io/github/v/release/AbhishekR14/cards-ledger?label=release" alt="Latest release"></a>

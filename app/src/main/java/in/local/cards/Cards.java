@@ -10,7 +10,7 @@ import java.util.*;
  *
  * <ul>
  * <li><b>Global</b> ({@code app}): capture on/off, the chosen SMS app, the notification replay
- *     cache, the theme — everything the device holds once, whatever the card. This is what
+ *     cache and the theme: everything the device holds once, whatever the card. This is what
  *     {@link Store#prefs(Context)} returns, so the capture code reads it directly.</li>
  * <li><b>Per card</b> ({@code settings}, {@code settings-2}, …): last four digits, statement day,
  *     cap and reward plan, written by the card's own Settings screen.</li>

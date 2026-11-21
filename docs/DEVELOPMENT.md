@@ -2,7 +2,7 @@
 
 Cards Ledger is a native Android app in plain Java, with no third-party libraries and no Gradle. The
 build is a short PowerShell script around the Android SDK's own tools, and the logic that matters
-most — parsing, routing and reward maths — is plain Java with its own test suites.
+most (parsing, routing and reward maths) is plain Java with its own test suites.
 
 ## Project layout
 
@@ -43,7 +43,7 @@ pwsh ./tools/test.ps1      # Windows, or anywhere with PowerShell
 
 This runs `EngineTest` (parser, periods, notification and SMS capture, settings validation) and
 `MultiCardTest` (JSON, reward plans, reward totals, the card registry, alert routing, credits and
-backups) — about five thousand checks. `RewardsTest` includes a randomised comparison of the generic
+backups): about five thousand checks in all. `RewardsTest` includes a randomised comparison of the generic
 reward calculator against `Engine.totals` for the HSBC Live+ preset.
 
 The **Tests** workflow runs the same suites on every push to `main` and on pull requests.

@@ -1,4 +1,4 @@
-Track spending and rewards across all your credit cards — offline, on your phone.
+Track spending and rewards across all your credit cards, offline and on your phone.
 
 Cards Ledger reads the transaction alerts your banks already send, files each purchase under the
 right card, and estimates the cashback or points it earns under that card's own rules. It has no

@@ -160,7 +160,7 @@ public class MainActivity extends Activity {
   slide=0;entrance=false;animating=false;
   restoreScroll();
  }
- void period(){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);Button prev=button("‹",v->{anchor=start().minusDays(1);draw();});prev.setContentDescription("Previous reward period");row.addView(prev,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView t=text(start().format(DateTimeFormatter.ofPattern("d MMM"))+" — "+end().format(DateTimeFormatter.ofPattern("d MMM yyyy")),15,INK,true);t.setGravity(Gravity.CENTER);row.addView(t,new LinearLayout.LayoutParams(0,-2,1));Button next=button("›",v->{anchor=end().plusDays(1);draw();});next.setContentDescription("Next reward period");row.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));add(body,row);TextView mode=text(day()==0?"Calendar month" : "Statement period · closes on day "+day(),12,MUTED,false);mode.setGravity(Gravity.CENTER);add(body,mode);gap(body,16);}
+ void period(){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);Button prev=button("‹",v->{anchor=start().minusDays(1);draw();});prev.setContentDescription("Previous reward period");row.addView(prev,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView t=text(start().format(DateTimeFormatter.ofPattern("d MMM"))+" to "+end().format(DateTimeFormatter.ofPattern("d MMM yyyy")),15,INK,true);t.setGravity(Gravity.CENTER);row.addView(t,new LinearLayout.LayoutParams(0,-2,1));Button next=button("›",v->{anchor=end().plusDays(1);draw();});next.setContentDescription("Next reward period");row.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));add(body,row);TextView mode=text(day()==0?"Calendar month" : "Statement period · closes on day "+day(),12,MUTED,false);mode.setGravity(Gravity.CENTER);add(body,mode);gap(body,16);}
  // The figures and every rate in the wording come from this card's reward plan. With
  // the HSBC Live+ preset they are Engine.totals' own numbers, which RewardsTest checks.
  void overview(){
@@ -352,12 +352,12 @@ public class MainActivity extends Activity {
   add(appearance,text(Palette.of(this,darkMode).dynamic?"Colours follow your wallpaper, as Android sets them.":"Colours follow the app's own scheme on this version of Android.",12,MUTED,false));
 
  }
- // One card's own settings. Everything the device holds once — capture, the SMS app,
- // the theme — moved to deviceSettings() below, reached from the card grid.
+ // One card's own settings. What the device holds once (capture, the SMS app, the theme)
+ // is in deviceSettings() below, reached from the card grid.
  void settings(){
   boolean capped=!RewardPlan.CAP_NONE.equals(plan.capBasis);
   LinearLayout c=card(body,SURFACE);add(c,text("Your card",23,INK,true));gap(c,10);EditText last=input(c,"Last four digits only",p.getString("last4",""),2);last.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(4)});
-  EditText day=input(c,"Statement closing day (1–31), or 0 for calendar month",""+day(),2);add(c,text("Choose the period in your card’s terms. Enter the statement closing day, not the payment due date. Dates near the boundary may post in the following period. you can edit them in Activity.",12,MUTED,false));gap(c,10);
+  EditText day=input(c,"Statement closing day (1 to 31), or 0 for calendar month",""+day(),2);add(c,text("Choose the period in your card’s terms. Enter the statement closing day, not the payment due date. Dates near the boundary may post in the following period. you can edit them in Activity.",12,MUTED,false));gap(c,10);
   EditText limit=capped?input(c,(plan.pointsUnit()?"Reward points cap":"Accelerated cashback cap in ₹"),BigDecimalValue(cap()),8194):null;
   watchSetting(last,()->saveLastFour(last));watchSetting(day,()->saveDay(day));if(limit!=null)watchSetting(limit,()->saveCap(limit));
   LinearLayout rewards=card(body,SURFACE);add(rewards,text("Reward plan",23,INK,true));gap(rewards,8);
@@ -386,7 +386,7 @@ public class MainActivity extends Activity {
  }
  String planSummary(){
   StringBuilder out=new StringBuilder(plan.name);
-  for(RewardPlan.Category category:plan.categories)out.append("\n· ").append(category.name).append(" — ").append(rate(category)).append(category.capped?" (shares the cap)":"");
+  for(RewardPlan.Category category:plan.categories)out.append("\n· ").append(category.name).append(": ").append(rate(category)).append(category.capped?" (shares the cap)":"");
   if(!RewardPlan.CAP_NONE.equals(plan.capBasis))
    out.append("\nCap: ").append(reward(plan.capAmount)).append(RewardPlan.CAP_SPEND.equals(plan.capBasis)?" of qualifying spend":" of rewards").append(" per period");
   return out.toString();

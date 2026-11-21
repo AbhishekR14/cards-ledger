@@ -49,7 +49,7 @@ Tap **+** on the home screen and fill in:
 | Card name | Whatever you call the card, for example *Axis Ace*. Names must be unique. |
 | Bank name | The word the bank's alerts use, for example `HSBC`, `Axis`, `ICICI`, `HDFC` or `Federal`. Check one real SMS: this is how an alert is matched to the card. |
 | Last four digits | The end of the card number as alerts print it. |
-| Statement closing day | The day your statement closes, 1–31, or 0 to follow calendar months. Use the closing day, not the payment due date. |
+| Statement closing day | The day your statement closes, 1 to 31, or 0 to follow calendar months. Use the closing day, not the payment due date. |
 | Reward plan | The closest preset. Every rate can be changed afterwards. |
 
 Then turn on capture once, from **Settings** on the home screen, and approve Android's SMS permission.
@@ -86,8 +86,8 @@ Every purchase sits in one of its card's reward categories. A category is chosen
 
 1. **Your mapping** for that merchant on that card, saved with *Remember this merchant's category*
    while editing a purchase, or from **Settings → Merchant categories**;
-2. **The plan's merchant list**, for presets that know their own merchants — Swiggy on the Swiggy
-   HDFC plan, Amazon on the Amazon Pay ICICI plan;
+2. **The plan's merchant list**, for presets that know their own merchants, such as Swiggy on the
+   Swiggy HDFC plan and Amazon on the Amazon Pay ICICI plan;
 3. **The built-in catalogue** of about 120 merchant names, for the HSBC Live+ plan;
 4. otherwise **Needs category**, which waits in review and is left out of estimates.
 
@@ -182,9 +182,9 @@ Some things no plan can work out on its own:
 Money paid **to** a card is recorded alongside its spending. A credit is one of two things, and you
 choose which:
 
-- **A bill payment** — the default. It changes neither spend nor rewards and shows on the Overview's
-  *Paid to the card* line.
-- **A reversal** — money given back for spending in a category. Choose that category on the credit
+- **A bill payment.** This is the default. It changes neither spend nor rewards and shows on the
+  Overview's *Paid to the card* line.
+- **A reversal.** Money given back for spending in a category. Choose that category on the credit
   and it comes off that category's spend in the period it posts, taking that much cashback or points
   back with it. The Overview shows it as *Reversed by credits*, and the card's net spend and tile
   drop by it. A period that reverses more than it spent in a tier shows that tier's reward below
@@ -202,7 +202,7 @@ To record a credit by hand, use **Add purchase** and tick *Money paid to the car
 
 - **Unknown categories**, which are left out of estimates until you choose one;
 - **Suggested categories**, which count already but are not yet confirmed;
-- **Possible duplicates** — the same amount at the same merchant within two minutes — which are
+- **Possible duplicates** (the same amount at the same merchant within two minutes), which are
   left out until you keep or delete one;
 - **Refunds** whose message names a refund, which reduce spend once linked to the purchase they
   reverse; a refund posted in a later period corrects the original period;

@@ -198,7 +198,7 @@ public class HomeActivity extends Activity {
   final EditText issuer=input(l,"Bank name as its messages write it","",1);
   final EditText last4=input(l,"Last four digits","",2);
   last4.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(4)});
-  final EditText day=input(l,"Statement closing day (1–31), or 0 for calendar month","0",2);
+  final EditText day=input(l,"Statement closing day (1 to 31), or 0 for calendar month","0",2);
   add(l,text("Reward plan",13,MUTED,true));
   final List<RewardPlan> presets=RewardPlan.presets();
   String[] names=new String[presets.size()];

@@ -9,8 +9,8 @@ import java.util.regex.*;
  * Reads an alert about money posted <em>to</em> a card: a bill payment, a reversed charge, a
  * cashback credit.
  *
- * <p>{@link Engine#parse} rejects these on purpose — it was written for one card's spending — so
- * this is a separate reader rather than a change to it. A refund against a purchase is left to
+ * <p>{@link Engine#parse} rejects these on purpose, since it reads spending, so this is a
+ * separate reader rather than a change to it. A refund against a purchase is left to
  * the purchase parser, which already records and links those; this only takes what it turns away.
  *
  * <p>The amount and card-suffix patterns are deliberately the same shape as Engine's. They are
