@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.4.0
+
+- Swipe left and right to move between a card's Overview, Activity and Settings; swiping right
+  from Overview goes back to the grid. A swipe has to be clearly sideways, so scrolling never
+  changes tab by accident.
+- Motion throughout: tabs slide in from the side you moved toward, a card's screen slides in from
+  the grid and back out again, tiles and cards rise in one after another, the cap bar fills and
+  the cashback figure counts up. All of it is skipped when Android's "Remove animations" is on.
+- Tiles and the cashback card are soft gradients of the card's colour, lift slightly with a
+  shadow, ripple and shrink a little when pressed.
+- The theme follows the system by default, including the screen Android shows while the app
+  starts, and a whole-app backup keeps that choice instead of restoring it as light.
+- The Java package is now in.local.cards, matching the app. Installed data is unaffected.
+
+## 1.3.0
+
+- A credit can name the category it reverses, taking that category's cashback or points back. A
+  credit for exactly the amount of a recent purchase takes its category as a suggestion and asks
+  for review. A credit with no category is a bill payment and changes nothing.
+- The Overview shows what credits reversed, what was paid to the card and net spend; a tile leads
+  with net spend.
+- A tier with one category is named after it, rather than "Other eligible spend".
+- Buttons have room between them and the header sits lower.
+
+## 1.2.0
+
+- Payments and credits to a card are recorded instead of discarded.
+- Settings → Back up everything writes one file with every card, entry, merchant mapping, plan and
+  setting; Restore everything puts the app back as it was after a reinstall.
+- Colours follow the wallpaper on Android 12 and newer.
+
 ## 1.1.0 — multi-card fork
 
 First release of the **Cards Ledger** fork of Live+ Ledger. Tracks several credit cards, one tile

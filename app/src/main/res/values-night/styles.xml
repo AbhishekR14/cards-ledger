@@ -1,0 +1,5 @@
+<resources>
+  <!-- The window Android shows while the app starts follows the phone's dark mode, so a dark
+       phone never flashes a light screen before the app draws. -->
+  <style name="AppTheme" parent="AppTheme.Dark" />
+</resources>

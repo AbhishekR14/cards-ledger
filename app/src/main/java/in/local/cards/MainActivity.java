@@ -38,14 +38,20 @@ public class MainActivity extends Activity {
  String renderedPage;
  boolean restoringScroll;
  final BroadcastReceiver changed=new BroadcastReceiver(){public void onReceive(Context c,Intent i){draw();}};
- // this is upstream's screen, scoped to the card the home grid opened.
+ // The ledger screen, scoped to the card the home grid opened.
+ static final String[] TABS={"Overview","Activity","Settings"};
+ /** +1 when the next draw arrives from the right, -1 from the left, 0 when it does not move. */
+ int slide;
+ /** True until the screen's first draw, whose cards rise in; true during any draw that animates. */
+ boolean entrance=true,animating;
+ GestureDetector swipes;
  @Override public void onCreate(Bundle b){g=Cards.global(this);
   device=getIntent()!=null&&getIntent().getBooleanExtra(EXTRA_DEVICE,false);
   card=device?null:Cards.card(this,getIntent()==null?0:getIntent().getIntExtra(Cards.EXTRA_CARD,0));
   if(card==null&&!device){super.onCreate(b);finish();return;}
   if(device){p=g;plan=RewardPlan.hsbcLivePlus();tab="Settings";}
   else{cardId=card.id;p=Cards.prefs(this,cardId);plan=Cards.plan(this,cardId);if(getIntent().getBooleanExtra(EXTRA_SETTINGS,false))tab="Settings";}
-  CaptureStore.prepareEdition(this);if(!CaptureMode.SMS)SmsApps.selected(this);darkMode=Palette.dark(this,g.getString("theme","system"));setTheme(darkMode?R.style.AppTheme_Dark:R.style.AppTheme_Light);super.onCreate(b);applyPalette();if(!device)store=new Store(this,card.database());getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);if(b!=null){pendingSmsEnable=b.getBoolean("pendingSmsEnable",false);pendingNotificationEnable=b.getBoolean("pendingNotificationEnable",false);tab=b.getString("tab","Overview");anchor=LocalDate.parse(b.getString("anchor",anchor.toString()));reviewOnly=b.getBoolean("reviewOnly",false);Bundle saved=b.getBundle("scrollPositions");if(saved!=null)scrollPositions=saved;}draw();
+  CaptureStore.prepareEdition(this);if(!CaptureMode.SMS)SmsApps.selected(this);darkMode=Palette.dark(this,g.getString("theme","system"));setTheme(darkMode?R.style.AppTheme_Dark:R.style.AppTheme_Light);super.onCreate(b);applyPalette();if(!device)store=new Store(this,card.database());getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);if(b!=null){pendingSmsEnable=b.getBoolean("pendingSmsEnable",false);pendingNotificationEnable=b.getBoolean("pendingNotificationEnable",false);tab=b.getString("tab","Overview");anchor=LocalDate.parse(b.getString("anchor",anchor.toString()));reviewOnly=b.getBoolean("reviewOnly",false);Bundle saved=b.getBundle("scrollPositions");if(saved!=null)scrollPositions=saved;}
   // the card grid can send a new card straight into Restore backup.
   if(!device&&b==null&&getIntent().getBooleanExtra(EXTRA_RESTORE,false)){tab="Settings";draw();restore();}}
  @Override public void onSaveInstanceState(Bundle b){if(card==null&&!device){super.onSaveInstanceState(b);return;}flushSettings();rememberScroll();b.putBoolean("pendingSmsEnable",pendingSmsEnable);b.putBoolean("pendingNotificationEnable",pendingNotificationEnable);b.putString("tab",tab);b.putString("anchor",anchor.toString());b.putBoolean("reviewOnly",reviewOnly);b.putBundle("scrollPositions",new Bundle(scrollPositions));super.onSaveInstanceState(b);}
@@ -128,6 +134,7 @@ public class MainActivity extends Activity {
  }
  void draw(){
   flushSettings();rememberScroll();
+  animating=entrance||slide!=0;
   root=column();root.setBackgroundColor(BG);root.setPadding(dp(20),dp(12),dp(20),0);setContentView(root);
   root.setOnApplyWindowInsetsListener((v,i)->{root.setPadding(dp(20),Math.max(dp(12),i.getSystemWindowInsetTop())+dp(14),dp(20),i.getSystemWindowInsetBottom());return i;});
   // the card's own name heads the screen, with a way back to the grid.
@@ -139,7 +146,7 @@ public class MainActivity extends Activity {
   nav=new LinearLayout(this);
   if(!device)for(String name:new String[]{"Overview","Activity","Settings"}){
    boolean selected=tab.equals(name);
-   Button b=button(name,v->{tab=name;reviewOnly=false;draw();});styleTab(b,selected,false);
+   Button b=button(name,v->go(name));styleTab(b,selected,false);
    b.setContentDescription(name+" tab"+(selected?", selected":", tap to open"));
    LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,dp(50),1);if(nav.getChildCount()>0)params.setMarginStart(dp(6));nav.addView(b,params);
   }
@@ -148,6 +155,9 @@ public class MainActivity extends Activity {
   scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setVerticalScrollBarEnabled(tab.equals("Activity"));scroll.setHorizontalScrollBarEnabled(false);scroll.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);scroll.setFocusableInTouchMode(true);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));body=column();body.setPadding(0,dp(6),0,dp(24));scroll.addView(body);
   renderedPage=pageKey();
   if(device)deviceSettings();else if(tab.equals("Settings"))settings();else{period();if(tab.equals("Overview"))overview();else activity();}
+  // A tab slides in from the side it was reached from; a freshly opened screen's cards rise in.
+  if(slide!=0)Motion.slideIn(body,slide,dp(56));else if(entrance)Motion.stagger(body,dp(22));
+  slide=0;entrance=false;animating=false;
   restoreScroll();
  }
  void period(){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);Button prev=button("‹",v->{anchor=start().minusDays(1);draw();});prev.setContentDescription("Previous reward period");row.addView(prev,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView t=text(start().format(DateTimeFormatter.ofPattern("d MMM"))+" — "+end().format(DateTimeFormatter.ofPattern("d MMM yyyy")),15,INK,true);t.setGravity(Gravity.CENTER);row.addView(t,new LinearLayout.LayoutParams(0,-2,1));Button next=button("›",v->{anchor=end().plusDays(1);draw();});next.setContentDescription("Next reward period");row.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));add(body,row);TextView mode=text(day()==0?"Calendar month" : "Statement period · closes on day "+day(),12,MUTED,false);mode.setGravity(Gravity.CENTER);add(body,mode);gap(body,16);}
@@ -158,10 +168,11 @@ public class MainActivity extends Activity {
   if(p.getString("last4","").isEmpty()||!p.getBoolean("periodSet",false)){LinearLayout setup=card(body,NOTICE);add(setup,text("Make it yours",20,INK,true));gap(setup,6);add(setup,text("Set your card’s last four digits and reward period before you start tracking.",14,INK,false));add(setup,button("Set up my card",v->{tab="Settings";draw();}));}
   boolean capped=!RewardPlan.CAP_NONE.equals(plan.capBasis)&&plan.capAmount>0;
   long headline=capped?t.cappedReward:t.reward;
-  LinearLayout hero=card(body,card.accent);add(hero,text((capped?"ACCELERATED ":"")+(plan.pointsUnit()?"REWARD POINTS":"CASHBACK")+" · ESTIMATE",11,ON_TILE,true));gap(hero,8);
-  add(hero,text(reward(headline),42,Color.WHITE,true));
+  LinearLayout hero=card(body,card.accent);hero.setBackground(Palette.gradient(card.accent,dp(26)));add(hero,text((capped?"ACCELERATED ":"")+(plan.pointsUnit()?"REWARD POINTS":"CASHBACK")+" · ESTIMATE",11,ON_TILE,true));gap(hero,8);
+  TextView amount=text(reward(headline),42,Color.WHITE,true);add(hero,amount);
+  if(animating)Motion.countUp(amount,headline,this::reward);
   add(hero,text(capped?"of "+reward(plan.capAmount)+" cap this period":"estimated for this period",14,Color.rgb(202,220,222),false));gap(hero,18);
-  if(capped){ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setMax(1000);bar.setProgress((int)Math.min(1000,headline*1000/Math.max(1,plan.capAmount)));bar.setProgressTintList(ColorStateList.valueOf(ON_TILE));bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.argb(60,255,255,255)));add(hero,bar);gap(hero,12);}
+  if(capped){ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setMax(1000);int filled=(int)Math.max(0,Math.min(1000,headline*1000/Math.max(1,plan.capAmount)));if(animating)Motion.fill(bar,filled);else bar.setProgress(filled);bar.setProgressTintList(ColorStateList.valueOf(ON_TILE));bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.argb(60,255,255,255)));add(hero,bar);gap(hero,12);}
   RewardPlan.Category single=plan.singleCappedRate();
   if(t.remainingSpend>=0&&single!=null)add(hero,text(cash(t.remainingSpend)+" eligible spend left at "+rate(single),17,ON_TILE,true));
   else if(t.remainingReward>=0)add(hero,text(reward(t.remainingReward)+" of the cap left this period",17,ON_TILE,true));
@@ -226,7 +237,7 @@ public class MainActivity extends Activity {
    boolean credit=Rows.credit(x);
    boolean needs=Rows.needsReview(x);if(reviewOnly&&!needs)continue;count++;
    LinearLayout c=card(body,SURFACE);LinearLayout r=new LinearLayout(this);r.addView(text(x.merchant,17,INK,true),new LinearLayout.LayoutParams(0,-2,1));r.addView(text((x.refund||credit?"−":"")+cash(x.amount),17,credit?SUCCESS:INK,true));add(c,r);gap(c,6);
-   String status=credit?(x.category>0?"Reverses "+label(x.category)+(x.confirmed?" · checked":" · suggested")+" · reward taken back":"Paid to the card · no reward effect"):x.refund?(x.linked.isEmpty()?"Refund · link to original purchase":"Refund linked to purchase #"+x.linked):(x.duplicate?"Possible duplicate · excluded from estimate":label(x.category)+(x.confirmed?" · checked":" · suggested"));add(c,text(status,13,needs?CORAL:MUTED,false));add(c,text(x.date+"  /  "+sourceLabel(x.source),11,MUTED,false));c.setOnClickListener(v->{if(x.refund)refund(x);else edit(x);});c.setContentDescription(x.merchant+", "+cash(x.amount)+", "+status+". Tap to edit.");
+   String status=credit?(x.category>0?"Reverses "+label(x.category)+(x.confirmed?" · checked":" · suggested")+" · reward taken back":"Paid to the card · no reward effect"):x.refund?(x.linked.isEmpty()?"Refund · link to original purchase":"Refund linked to purchase #"+x.linked):(x.duplicate?"Possible duplicate · excluded from estimate":label(x.category)+(x.confirmed?" · checked":" · suggested"));add(c,text(status,13,needs?CORAL:MUTED,false));add(c,text(x.date+"  /  "+sourceLabel(x.source),11,MUTED,false));c.setOnClickListener(v->{if(x.refund)refund(x);else edit(x);});c.setForeground(ripple());c.setContentDescription(x.merchant+", "+cash(x.amount)+", "+status+". Tap to edit.");
   }
   if(count==0){LinearLayout c=card(body,SURFACE);add(c,text(reviewOnly?"All caught up":"A fresh start",24,INK,true));gap(c,8);add(c,text(reviewOnly?"No items need review in this period.":"There are no transactions in this period. You can add a purchase or paste a transaction alert.",14,MUTED,false));}
 
@@ -491,6 +502,46 @@ public class MainActivity extends Activity {
   }
  }
  void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
+ /** A press ripple in the card's own shape, laid over a tappable card. */
+ android.graphics.drawable.Drawable ripple(){
+  return new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Color.argb(36,Color.red(INK),Color.green(INK),Color.blue(INK))),null,bg(Color.WHITE,26));
+ }
+ int tabIndex(String name){for(int i=0;i<TABS.length;i++)if(TABS[i].equals(name))return i;return 0;}
+ /** Moves to a tab, sliding the content in from the direction of travel. */
+ void go(String next){
+  if(next.equals(tab))return;
+  slide=tabIndex(next)>tabIndex(tab)?1:-1;
+  tab=next;reviewOnly=false;draw();
+ }
+ /**
+  * Swipe left for the next tab and right for the previous one; swiping right from Overview, or
+  * from the device settings, goes back. A swipe has to be clearly sideways and quick, so a
+  * slanted scroll never changes tab, and the lifted finger is not also delivered as a tap.
+  */
+ @Override public boolean dispatchTouchEvent(MotionEvent event){
+  if(card!=null||device){
+   if(swipes==null)swipes=new GestureDetector(this,new GestureDetector.SimpleOnGestureListener(){
+    @Override public boolean onFling(MotionEvent down,MotionEvent up,float vx,float vy){
+     if(down==null||up==null)return false;
+     float dx=up.getX()-down.getX(),dy=up.getY()-down.getY();
+     if(Math.abs(dx)<dp(72)||Math.abs(dx)<Math.abs(dy)*1.6f||Math.abs(vx)<dp(260))return false;
+     if(device){if(dx>0){finish();return true;}return false;}
+     int at=tabIndex(tab);
+     if(dx<0){if(at<TABS.length-1){go(TABS[at+1]);return true;}return false;}
+     if(at>0)go(TABS[at-1]);else finish();
+     return true;
+    }
+   });
+   if(swipes.onTouchEvent(event)&&event.getActionMasked()==MotionEvent.ACTION_UP){
+    MotionEvent cancel=MotionEvent.obtain(event);cancel.setAction(MotionEvent.ACTION_CANCEL);
+    super.dispatchTouchEvent(cancel);cancel.recycle();
+    return true;
+   }
+  }
+  return super.dispatchTouchEvent(event);
+ }
+ /** Leaving a card slides back toward the grid. */
+ @Override public void finish(){super.finish();overridePendingTransition(R.anim.enter_back,R.anim.exit_back);}
  // the whole device in one file, so an uninstall is recoverable.
  void backupEverything(){
   startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE)

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 
 /**
@@ -75,6 +76,18 @@ public final class Palette {
    theme(activity,android.R.attr.textColorPrimary),
    Color.rgb(185,237,204),
    dark,false);
+ }
+ /** A card's colour as a soft diagonal gradient, lifting toward the top corner. */
+ public static GradientDrawable gradient(int color,float radius){
+  GradientDrawable drawable=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{lift(color,0.18f),color,darken(color,0.12f)});
+  drawable.setCornerRadius(radius);
+  return drawable;
+ }
+ static int lift(int color,float by){
+  return Color.rgb((int)(Color.red(color)+(255-Color.red(color))*by),(int)(Color.green(color)+(255-Color.green(color))*by),(int)(Color.blue(color)+(255-Color.blue(color))*by));
+ }
+ static int darken(int color,float by){
+  return Color.rgb((int)(Color.red(color)*(1-by)),(int)(Color.green(color)*(1-by)),(int)(Color.blue(color)*(1-by)));
  }
  private static int color(Activity activity,int id){
   try{return activity.getColor(id);}catch(RuntimeException ignored){return Color.GRAY;}

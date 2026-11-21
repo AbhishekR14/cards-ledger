@@ -29,7 +29,8 @@ If the download will not start, it is the browser rather than the link. Chrome b
 - **Payments and credits too.** A bill payment is recorded and left out of rewards. A credit that reverses a purchase takes back that category's cashback or points — matched to the purchase automatically when the amount lines up, or chosen by you.
 - **Review before it counts.** Suggested categories are provisional; unknown categories and possible duplicates stay out of the estimate until you confirm them, and refunds need linking to their purchase.
 - **One backup for the whole app.** Settings → Back up everything writes a single file holding every card, its entries, its merchant mappings, its plan and its settings. Restore it after an uninstall and the app is as it was.
-- Manual entry, pasted alerts, per-card backups, and colours that follow your wallpaper on Android 12 and newer.
+- **Quick to move around.** Swipe between a card's Overview, Activity and Settings, and right from Overview to go back. Screens slide and settle, and the theme follows your phone's light or dark mode, with colours taken from your wallpaper on Android 12 and newer.
+- Manual entry, pasted alerts and per-card backups.
 
 [Using several cards](docs/MULTI-CARD.md) covers the reward-plan format and the routing rules in full.
 

@@ -33,8 +33,12 @@ public class HomeActivity extends Activity {
   palette();
   getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);
   getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-  draw();
+  // onResume draws; the first draw after opening lets the tiles rise in.
+  entrance=true;
  }
+ boolean entrance;
+ /** Opens a screen with the forward slide that its back swipe reverses. */
+ void open(Intent intent){startActivity(intent);overridePendingTransition(R.anim.enter_forward,R.anim.exit_forward);}
  @Override public void onResume(){
   super.onResume();
   IntentFilter filter=new IntentFilter("in.local.cards.CHANGED");
@@ -78,7 +82,7 @@ public class HomeActivity extends Activity {
   root.setOnApplyWindowInsetsListener((v,insets)->{root.setPadding(dp(20),Math.max(dp(12),insets.getSystemWindowInsetTop())+dp(14),dp(20),insets.getSystemWindowInsetBottom());return insets;});
   LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);
   top.addView(text("Cards Ledger",28,INK,true),new LinearLayout.LayoutParams(0,-2,1));
-  Button settings=button("Settings",v->startActivity(new Intent(this,MainActivity.class).putExtra(MainActivity.EXTRA_DEVICE,true)));
+  Button settings=button("Settings",v->open(new Intent(this,MainActivity.class).putExtra(MainActivity.EXTRA_DEVICE,true)));
   settings.setContentDescription("Device settings: capture, appearance and about");
   top.addView(settings,new LinearLayout.LayoutParams(-2,dp(44)));
   add(root,top);
@@ -90,6 +94,18 @@ public class HomeActivity extends Activity {
   body=column();body.setPadding(0,0,0,dp(24));scroll.addView(body);
   if(book.isEmpty())welcome();
   grid(book);
+  if(entrance){
+   // Each tile rises in after the one before it, reading across the grid.
+   int order=0;
+   for(int i=0;i<body.getChildCount();i++){
+    View child=body.getChildAt(i);
+    if(child instanceof LinearLayout&&((LinearLayout)child).getOrientation()==LinearLayout.HORIZONTAL){
+     LinearLayout row=(LinearLayout)child;
+     for(int j=0;j<row.getChildCount();j++)Motion.rise(row.getChildAt(j),order++,dp(28));
+    }else Motion.rise(child,order++,dp(28));
+   }
+   entrance=false;
+  }
  }
  void welcome(){
   LinearLayout c=column();c.setPadding(dp(20),dp(20),dp(20),dp(20));c.setBackground(background(NOTICE,26));
@@ -127,7 +143,10 @@ public class HomeActivity extends Activity {
   String four=p.getString("last4","");
   LinearLayout tile=column();
   tile.setPadding(dp(16),dp(16),dp(16),dp(16));
-  tile.setBackground(background(card.accent,26));
+  tile.setBackground(Palette.gradient(card.accent,dp(26)));
+  tile.setForeground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Color.argb(46,255,255,255)),null,background(Color.WHITE,26)));
+  tile.setElevation(dp(2));
+  Motion.pressable(tile);
   // The tile leads with what was spent this period; the reward it earned sits under it.
   String earnedText=plan.pointsUnit()?totals.reward+(totals.reward==1?" pt":" pts"):cash(earned);
   add(tile,text(card.name,17,Color.WHITE,true));
@@ -149,7 +168,7 @@ public class HomeActivity extends Activity {
   LinearLayout.LayoutParams footerLayout=new LinearLayout.LayoutParams(-1,0,1);
   footerLayout.topMargin=dp(4);
   tile.addView(footer,footerLayout);
-  tile.setOnClickListener(v->startActivity(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id)));
+  tile.setOnClickListener(v->open(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id)));
   tile.setOnLongClickListener(v->{manage(card);return true;});
   tile.setContentDescription(card.name+", "+card.issuer+(four.isEmpty()?"":" ending "+four)+", "
    +cash(totals.netSpend)+" net spent this period, "+earnedText+" earned"
@@ -161,6 +180,8 @@ public class HomeActivity extends Activity {
   tile.setGravity(Gravity.CENTER);
   tile.setPadding(dp(16),dp(16),dp(16),dp(16));
   GradientDrawable outline=background(SURFACE,26);outline.setStroke(dp(1),TAB_BORDER);
+  tile.setForeground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Color.argb(40,Color.red(INK),Color.green(INK),Color.blue(INK))),null,background(Color.WHITE,26)));
+  Motion.pressable(tile);
   tile.setBackground(outline);
   TextView plus=text("+",30,INK,true);plus.setGravity(Gravity.CENTER);
   add(tile,plus);
@@ -209,8 +230,8 @@ public class HomeActivity extends Activity {
   draw();
   new AlertDialog.Builder(this).setTitle(card.name+" added")
    .setMessage("Open it now, or restore a backup into it if you are moving from another install of this app.")
-   .setNegativeButton("Open the card",(d,w)->startActivity(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id)))
-   .setPositiveButton("Restore a backup",(d,w)->startActivity(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id).putExtra(MainActivity.EXTRA_RESTORE,true)))
+   .setNegativeButton("Open the card",(d,w)->open(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id)))
+   .setPositiveButton("Restore a backup",(d,w)->open(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id).putExtra(MainActivity.EXTRA_RESTORE,true)))
    .show();
  }
  void manage(final CardBook.Card card){
@@ -221,7 +242,7 @@ public class HomeActivity extends Activity {
     if(which==1||which==2){
      CardBook book=Cards.book(this);book.move(card.id,which==1?-1:1);Cards.save(this,book);draw();return;
     }
-    if(which==3){startActivity(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id).putExtra(MainActivity.EXTRA_SETTINGS,true));return;}
+    if(which==3){open(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id).putExtra(MainActivity.EXTRA_SETTINGS,true));return;}
     confirmRemove(card);
    }).setNegativeButton("Close",null).show();
  }

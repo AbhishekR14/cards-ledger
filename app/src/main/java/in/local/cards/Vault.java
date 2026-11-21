@@ -29,7 +29,7 @@ public final class Vault {
  }
  /** Everything in the file. */
  public static final class Snapshot {
-  public String theme="light";
+  public String theme="system";
   public final List<CardData> cards=new ArrayList<>();
   public int rowCount(){int n=0;for(CardData card:cards)n+=card.rows.size();return n;}
  }
@@ -84,7 +84,8 @@ public final class Vault {
   if(!FORMAT.equals(Json.text(source,"format","")))
    throw new IllegalArgumentException("This is not a Cards Ledger backup of the whole app.");
   Snapshot snapshot=new Snapshot();
-  snapshot.theme="dark".equals(Json.text(source,"theme","light"))?"dark":"light";
+  String theme=Json.text(source,"theme","system");
+  snapshot.theme="dark".equals(theme)||"light".equals(theme)?theme:"system";
   List<Object> cards=Json.children(source,"cards");
   if(cards.isEmpty())throw new IllegalArgumentException("The backup holds no cards.");
   if(cards.size()>MAX_CARDS)throw new IllegalArgumentException("The backup holds more cards than this app tracks.");

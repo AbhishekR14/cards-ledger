@@ -52,6 +52,10 @@ public class VaultTest {
   Vault.Snapshot after=Vault.decode(Vault.encode(before));
 
   check(after.theme.equals("dark"),"the theme survives a backup");
+  Vault.Snapshot following=sample();following.theme="system";
+  check(Vault.decode(Vault.encode(following)).theme.equals("system"),"following the system survives a backup instead of turning light");
+  check(Vault.decode("{\"format\":\"cards-ledger-backup-v1\",\"theme\":\"sepia\",\"cards\":[{\"id\":1}]}").theme.equals("system"),"an unknown theme falls back to following the system");
+  check(Vault.decode("{\"format\":\"cards-ledger-backup-v1\",\"cards\":[{\"id\":1}]}").theme.equals("system"),"a backup without a theme follows the system");
   check(after.cards.size()==2,"both cards survive");
   check(after.rowCount()==4,"every entry survives");
 

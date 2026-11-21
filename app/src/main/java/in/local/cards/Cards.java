@@ -102,7 +102,7 @@ public final class Cards {
  /** Everything on this device, ready to be written to one file. */
  public static Vault.Snapshot snapshot(Context context){
   Vault.Snapshot out=new Vault.Snapshot();
-  out.theme=global(context).getString("theme","light");
+  out.theme=global(context).getString("theme","system");
   for(CardBook.Card card:book(context).cards()){
    Vault.CardData data=new Vault.CardData();
    data.card=card;
