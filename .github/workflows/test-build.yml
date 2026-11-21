@@ -6,7 +6,7 @@ name: Test build APKs
 
 on:
   push:
-    branches: ['claude/hsbc-multi-card-ledger-vqq6ku']
+    branches: [main]
     paths:
       - 'app/**'
       - 'tests/**'
