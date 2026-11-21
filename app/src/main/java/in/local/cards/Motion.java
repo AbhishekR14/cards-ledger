@@ -46,6 +46,12 @@ final class Motion {
   view.setAlpha(0f);view.setTranslationX(direction*distance);
   view.animate().alpha(1f).translationX(0f).setStartDelay(0).setDuration(MEDIUM).setInterpolator(SETTLE).start();
  }
+ /** Fades in where it stands, for content that changes in place. */
+ static void fadeIn(View view){
+  if(!on())return;
+  view.setAlpha(0f);
+  view.animate().alpha(1f).setStartDelay(0).setDuration(SHORT+40).setInterpolator(EASE).start();
+ }
  /** A progress bar fills from empty to {@code value}. */
  static void fill(ProgressBar bar,int value){
   if(!on()){bar.setProgress(value);return;}

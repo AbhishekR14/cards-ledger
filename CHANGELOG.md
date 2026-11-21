@@ -3,6 +3,26 @@
 All notable changes to Cards Ledger are recorded here. The project follows
 [semantic versioning](https://semver.org).
 
+## 1.0.1
+
+### Fixed
+
+- HDFC alerts are now captured. Their card number was written as `x1234` or a bare `Card 1234`,
+  and only `XX1234`, `**1234` or "ending 1234" were recognised. Credits read the suffix the same way.
+- Alerts dated year first, as HDFC does with `2026-11-13:00:30:59`, keep their own date instead of
+  the day the message was pasted.
+
+### Changed
+
+- Swiping between a card's tabs follows your finger: let go past a third of the screen, or flick,
+  to move on, or let go early to spring back.
+- Stepping through statement periods slides, the review filter crossfades, dialogs grow in and
+  settle out, and fields that appear in a dialog ease into place.
+- The home screen draws straight away from each card's last figures and catches up in the
+  background, so returning to it never waits on the cards' ledgers.
+- Scrollbars are gone throughout the app.
+- The Reward rules & limits section appears only on HSBC Live+ cards, whose rules it describes.
+
 ## 1.0.0
 
 The first release.

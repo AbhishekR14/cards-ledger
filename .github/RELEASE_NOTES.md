@@ -1,3 +1,14 @@
+### What's new in 1.0.1
+
+- **HDFC alerts are captured**, including the `x1234` and `Card 1234` card number formats and
+  year-first dates.
+- **Fluid navigation:** tabs follow your finger as you swipe, and periods, filters and dialogs
+  animate smoothly.
+- The home screen opens instantly, scrollbars are gone, and the HSBC rules section shows only on
+  HSBC Live+ cards.
+
+---
+
 Track spending and rewards across all your credit cards, offline and on your phone.
 
 Cards Ledger reads the transaction alerts your banks already send, files each purchase under the

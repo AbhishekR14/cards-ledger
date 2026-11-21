@@ -15,16 +15,50 @@ public final class Engine {
   public long id, amount, received; public String merchant="",date="",source="manual",event="",linked=""; public int category=0; public boolean confirmed=false,refund=false,duplicate=false,active=true;
  }
  public static class Parsed { public long amount; public String merchant,date; public boolean refund,dateFromAlert; }
- private static final Pattern AMOUNT=Pattern.compile("(?i)(?:INR|Rs\\.?|₹)\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)(?![0-9.])");
- private static final Pattern CARD=Pattern.compile("(?i)(?:card|cc)\\b[^.\\n]{0,50}?(?:ending(?:\\s+with|\\s+in)?|end|[xX*•]{2,}|no\\.?|number)[:\\s.xX*•-]*([0-9]{4})(?![0-9])");
+ static final Pattern AMOUNT=Pattern.compile("(?i)(?:INR|Rs\\.?|₹)\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)(?![0-9.])");
+ /**
+  * A card suffix after a marker: "ending 1234", "no. 1234", "XX1234", "**1234", or a single
+  * "x1234" as HDFC writes it. An x only counts as a mask when no letter precedes it, so the X
+  * ending a word such as "MAX" is never read as one.
+  */
+ private static final Pattern CARD_MARKED=Pattern.compile("(?i)(?:card|cc)\\b[^.\\n]{0,50}?(?:ending(?:\\s+with|\\s+in)?|end|[*•]+|(?<![A-Za-z])[xX][xX*•]*|no\\.?|number)[:\\s.xX*•-]*([0-9]{4})(?![0-9])");
+ /** A suffix straight after the word, as in HDFC's "Card 1234" and "BLOCK CC 1234". */
+ private static final Pattern CARD_BARE=Pattern.compile("(?i)\\b(?:card|cc)(?:\\s+(?:no\\.?|number|num))?[\\s:#-]+([0-9]{4})(?![0-9])");
+ /** True when the text names a card ending in {@code last4}, in any of the wordings banks use. */
+ static boolean namesCard(String text,String last4){
+  for(Pattern pattern:new Pattern[]{CARD_MARKED,CARD_BARE}){
+   Matcher found=pattern.matcher(text);
+   while(found.find())if(found.group(1).equals(last4))return true;
+  }
+  return false;
+ }
+ private static final Pattern DATE=Pattern.compile("(?i)\\b([0-9]{1,2}[-/](?:[0-9]{1,2}|[A-Z]{3})[-/][0-9]{2,4})\\b");
+ /** HDFC dates its alerts year first, often with the time run on: "2026-11-13:00:30:59". */
+ private static final Pattern ISO_DATE=Pattern.compile("\\b(20[0-9]{2}-[0-9]{2}-[0-9]{2})(?![0-9])");
+ private static final String[] DATE_FORMATS={"d/M/uuuu","d-M-uuuu","d/M/uu","d-M-uu","d-MMM-uuuu","d-MMM-uu"};
+ /**
+  * The date an alert states, or null when it states none that is plausible: a date no later than
+  * the day after the message arrived, and no earlier than 2020.
+  */
+ static LocalDate statedDate(String body,LocalDate received){
+  Matcher d=DATE.matcher(body);
+  if(d.find())for(String fmt:DATE_FORMATS)try{
+   LocalDate date=LocalDate.parse(d.group(1),new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern(fmt).toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT));
+   if(!date.isAfter(received.plusDays(1))&&date.getYear()>=2020)return date;
+  }catch(Exception ignored){}
+  Matcher iso=ISO_DATE.matcher(body);
+  if(iso.find())try{
+   LocalDate date=LocalDate.parse(iso.group(1),new DateTimeFormatterBuilder().appendPattern("uuuu-MM-dd").toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT));
+   if(!date.isAfter(received.plusDays(1))&&date.getYear()>=2020)return date;
+  }catch(Exception ignored){}
+  return null;
+ }
  public static Parsed parse(String context,String body,String last4,long time) {
   if(!last4.matches("[0-9]{4}") || body==null || body.length()>6000) return null;
   String all=context+" "+body, lower=all.toLowerCase(Locale.ROOT);
   if(!lower.contains("hsbc") || !lower.contains("card")) return null;
   if(Pattern.compile("(?i)\\b(otp|one.time.password|verification.code|declined|failed|unsuccessful|attempt|blocked|cancelled)\\b").matcher(all).find()) return null;
-  Matcher card=CARD.matcher(all); boolean match=false;
-  while(card.find()) if(card.group(1).equals(last4)) match=true;
-  if(!match) return null;
+  if(!namesCard(all,last4)) return null;
   boolean refund=Pattern.compile("(?i)\\b(refund(?:ed)?|reversal|reversed)\\b").matcher(body).find();
   if(!refund && Pattern.compile("(?i)(\\bcredited\\b|payment.*received|amount due|statement|bill due)").matcher(body).find()) return null;
   if(!refund && !Pattern.compile("(?i)\\b(spent|used|purchase|debited|transaction|txn|charged)\\b").matcher(body).find()) return null;
@@ -35,12 +69,9 @@ public final class Engine {
   Matcher m=Pattern.compile("(?i)\\b(?:at|towards|merchant[: ]+)\\s+(.+?)(?=\\s+(?:on|dated|for INR|using|avl|available|not you|if not|ref(?:erence)?|txn|transaction)\\b|[.;\\n]|$)").matcher(body);
   if(m.find()) p.merchant=m.group(1).trim().replaceAll("[\\s,]+$", "");
   if(p.merchant.length()>90) p.merchant=p.merchant.substring(0,90);
-  p.date=Instant.ofEpochMilli(time).atZone(ZoneId.of("Asia/Kolkata")).toLocalDate().toString();
-  Matcher d=Pattern.compile("(?i)\\b([0-9]{1,2}[-/](?:[0-9]{1,2}|[A-Z]{3})[-/][0-9]{2,4})\\b").matcher(body);
-  if(d.find()) for(String fmt:new String[]{"d/M/uuuu","d-M-uuuu","d/M/uu","d-M-uu","d-MMM-uuuu","d-MMM-uu"}) try {
-   LocalDate date=LocalDate.parse(d.group(1),new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern(fmt).toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT));
-   if(!date.isAfter(LocalDate.parse(p.date).plusDays(1)) && date.getYear()>=2020){p.date=date.toString();p.dateFromAlert=true;break;}
-  }catch(Exception ignored){}
+  LocalDate received=Instant.ofEpochMilli(time).atZone(ZoneId.of("Asia/Kolkata")).toLocalDate();
+  LocalDate stated=statedDate(body,received);
+  p.date=(stated==null?received:stated).toString();p.dateFromAlert=stated!=null;
   return p;
  }
  public static String key(String merchant) { return merchant.toLowerCase(Locale.ROOT).trim().replaceAll("\\s+"," "); }

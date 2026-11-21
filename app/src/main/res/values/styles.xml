@@ -16,6 +16,11 @@
     <item name="android:background">@drawable/field_background</item>
     <item name="android:minHeight">52dp</item>
   </style>
+  <!-- Dialogs grow in and settle out rather than popping. -->
+  <style name="LedgerDialogAnimation">
+    <item name="android:windowEnterAnimation">@anim/dialog_enter</item>
+    <item name="android:windowExitAnimation">@anim/dialog_exit</item>
+  </style>
   <!-- Dialog actions read as sentence-case text in the accent colour. -->
   <style name="LedgerDialogButton" parent="android:Widget.Material.Button.Borderless.Colored">
     <item name="android:textAllCaps">false</item>
@@ -47,6 +52,8 @@
     <item name="ledgerOnReview">#FFFFFF</item>
     <item name="ledgerField">#EEF2EE</item>
     <item name="android:editTextStyle">@style/LedgerField</item>
+    <item name="android:scrollbarThumbVertical">@android:color/transparent</item>
+    <item name="android:scrollbarThumbHorizontal">@android:color/transparent</item>
   </style>
   <style name="AppTheme.Dark" parent="android:style/Theme.Material.NoActionBar">
     <item name="android:windowBackground">#101A1E</item>
@@ -70,6 +77,8 @@
     <item name="ledgerOnReview">#FFE0D6</item>
     <item name="ledgerField">#253A40</item>
     <item name="android:editTextStyle">@style/LedgerField</item>
+    <item name="android:scrollbarThumbVertical">@android:color/transparent</item>
+    <item name="android:scrollbarThumbHorizontal">@android:color/transparent</item>
   </style>
   <style name="AppDialog.Light" parent="android:style/Theme.Material.Light.Dialog.Alert">
     <item name="android:datePickerStyle">@style/CalendarPicker</item>
@@ -79,6 +88,9 @@
     <item name="android:textColorSecondary">#5B6E70</item>
     <item name="android:windowBackground">@drawable/dialog_background</item>
     <item name="android:buttonBarButtonStyle">@style/LedgerDialogButton</item>
+    <item name="android:scrollbarThumbVertical">@android:color/transparent</item>
+    <item name="android:scrollbarThumbHorizontal">@android:color/transparent</item>
+    <item name="android:windowAnimationStyle">@style/LedgerDialogAnimation</item>
   </style>
   <style name="AppDialog.Dark" parent="android:style/Theme.Material.Dialog.Alert">
     <item name="android:datePickerStyle">@style/CalendarPicker</item>
@@ -88,6 +100,9 @@
     <item name="android:textColorSecondary">#A6B8B6</item>
     <item name="android:windowBackground">@drawable/dialog_background</item>
     <item name="android:buttonBarButtonStyle">@style/LedgerDialogButton</item>
+    <item name="android:scrollbarThumbVertical">@android:color/transparent</item>
+    <item name="android:scrollbarThumbHorizontal">@android:color/transparent</item>
+    <item name="android:windowAnimationStyle">@style/LedgerDialogAnimation</item>
   </style>
   <style name="CalendarPicker" parent="android:style/Widget.Material.DatePicker">
     <item name="android:datePickerMode">calendar</item>

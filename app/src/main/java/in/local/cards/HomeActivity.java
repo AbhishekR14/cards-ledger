@@ -23,7 +23,38 @@ public class HomeActivity extends Activity {
  boolean darkMode;
  SharedPreferences g;
  LinearLayout root,body;
- final BroadcastReceiver changed=new BroadcastReceiver(){public void onReceive(Context c,Intent i){draw();}};
+ final BroadcastReceiver changed=new BroadcastReceiver(){public void onReceive(Context c,Intent i){forget(i.getIntExtra(Cards.EXTRA_CARD,0));draw();}};
+
+ /*
+  * Each card's figures as last worked out. The grid draws from these at once, then works every
+  * card out again off the main thread and redraws only if something changed, so coming back to
+  * the grid never waits on several databases. A card whose ledger has just changed is forgotten,
+  * and worked out straight away the next time the grid draws.
+  */
+ static final java.util.Map<Integer,Rewards.Totals> TILES=new java.util.concurrent.ConcurrentHashMap<>();
+ static final java.util.concurrent.ExecutorService WORK=java.util.concurrent.Executors.newSingleThreadExecutor();
+ static void forget(int cardId){if(cardId>0)TILES.remove(cardId);}
+ /** The card's figures for the statement period running today. */
+ static Rewards.Totals compute(Context context,CardBook.Card card){
+  int statementDay=Cards.prefs(context,card.id).getInt("day",0);
+  LocalDate start=Engine.cycleStart(LocalDate.now(ZoneId.of("Asia/Kolkata")),statementDay),end=Engine.cycleEnd(start,statementDay);
+  try(Store store=Cards.store(context,card.id)){return Rewards.totals(store.all(),start,end,Cards.plan(context,card.id));}
+ }
+ static String signature(Rewards.Totals t){return t.netSpend+"|"+t.reward+"|"+t.cappedReward+"|"+t.review+"|"+t.reversed+"|"+t.totalSpend;}
+ void refresh(){
+  final Context app=getApplicationContext();
+  final java.util.List<CardBook.Card> cards=new java.util.ArrayList<>(Cards.book(this).cards());
+  WORK.execute(()->{
+   boolean different=false;
+   for(CardBook.Card card:cards){
+    try{
+     Rewards.Totals fresh=compute(app,card),old=TILES.put(card.id,fresh);
+     if(old==null||!signature(old).equals(signature(fresh)))different=true;
+    }catch(RuntimeException ignored){}
+   }
+   if(different)runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())draw();});
+  });
+ }
 
  @Override public void onCreate(Bundle state){
   g=Cards.global(this);
@@ -89,11 +120,12 @@ public class HomeActivity extends Activity {
   boolean live=g.getBoolean("capture",false)&&CaptureMode.access(this);
   add(root,text(live?"Capture is on · "+book.size()+(book.size()==1?" card":" cards"):"Your cards, in view.",13,live?SUCCESS:MUTED,false));
   gap(root,14);
-  ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
+  ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setVerticalScrollBarEnabled(false);
   root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
   body=column();body.setPadding(0,0,0,dp(24));scroll.addView(body);
   if(book.isEmpty())welcome();
   grid(book);
+  refresh();
   if(entrance){
    // Each tile rises in after the one before it, reading across the grid.
    int order=0;
@@ -133,11 +165,8 @@ public class HomeActivity extends Activity {
  View tile(final CardBook.Card card){
   SharedPreferences p=Cards.prefs(this,card.id);
   RewardPlan plan=Cards.plan(this,card.id);
-  int statementDay=p.getInt("day",0);
-  LocalDate today=LocalDate.now(ZoneId.of("Asia/Kolkata"));
-  LocalDate start=Engine.cycleStart(today,statementDay),end=Engine.cycleEnd(start,statementDay);
-  Rewards.Totals totals;
-  try(Store store=Cards.store(this,card.id)){totals=Rewards.totals(store.all(),start,end,plan);}
+  Rewards.Totals totals=TILES.get(card.id);
+  if(totals==null){totals=compute(this,card);TILES.put(card.id,totals);}
   boolean capped=!RewardPlan.CAP_NONE.equals(plan.capBasis)&&plan.capAmount>0;
   long earned=capped?totals.cappedReward:totals.reward;
   String four=p.getString("last4","");
@@ -210,7 +239,7 @@ public class HomeActivity extends Activity {
   final CheckBox capture=new CheckBox(this);
   capture.setText("Add this card's alerts automatically");capture.setChecked(true);
   add(l,capture);
-  ScrollView scroll=new ScrollView(this);scroll.addView(l);
+  ScrollView scroll=new ScrollView(this);scroll.setVerticalScrollBarEnabled(false);scroll.addView(l);
   final AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Add a card").setView(scroll)
    .setPositiveButton("Add",null).setNegativeButton("Cancel",null).create();
   dialog.setOnShowListener(d->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
@@ -260,7 +289,7 @@ public class HomeActivity extends Activity {
   colour.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,names));
   colour.setSelection(selected);
   add(l,colour);
-  ScrollView scroll=new ScrollView(this);scroll.addView(l);
+  ScrollView scroll=new ScrollView(this);scroll.setVerticalScrollBarEnabled(false);scroll.addView(l);
   new AlertDialog.Builder(this).setTitle("Rename and recolour").setView(scroll)
    .setNegativeButton("Cancel",null)
    .setPositiveButton("Save",(d,w)->{

@@ -110,6 +110,35 @@ public class AlertsTest {
   Alerts.name(digitsOnly,"INR 10 spent on Card XX1234 on 21-Nov-26 on 1800 2662");
   check(digitsOnly.merchant.equals("Unknown merchant"),"a run of digits is not taken for a merchant name");
 
+  // HDFC writes the suffix with a single x, or bare after "Card", and dates alerts year first.
+  java.util.List<Alerts.Target> hdfc=java.util.Arrays.asList(target(9,"1234","HDFC"));
+  Alerts.Match single=Alerts.route("VM-HDFCBK","Rs.6399 spent on HDFC Bank Card x1234 at RAZ*SWIGGY on 2026-11-13:00:30:59.Not U? To Block & Reissue Call 18002586161/SMS BLOCK CC 1234 to 7308080808",NOW,hdfc);
+  check(single!=null&&single.cardId==9,"a single-x suffix, as in \"Card x1234\", names the card");
+  check(single.transaction.amount==639900,"the HDFC amount is read");
+  check(single.transaction.merchant.equals("RAZ*SWIGGY"),"the HDFC merchant is read");
+  check(single.transaction.date.equals("2026-11-13"),"a year-first date with the time run on is read");
+  check(in.local.cards.RewardPlan.swiggyHdfc().suggest(single.transaction.merchant)==1,"a payment-gateway prefix still lands Swiggy in the Swiggy tier");
+  Alerts.Match bareSuffix=Alerts.route("VM-HDFCBK","Spent Rs.295 On HDFC Bank Card 1234 At Swiggy On 2026-11-15:00:29:13.Not You? To Block+Reissue Call 18002586161/SMS BLOCK CC 1234 to 7308080808",NOW,hdfc);
+  check(bareSuffix!=null&&bareSuffix.cardId==9,"a bare suffix, as in \"Card 1234\", names the card");
+  check(bareSuffix.transaction.amount==29500&&bareSuffix.transaction.merchant.equals("Swiggy"),"the bare-suffix alert is read whole");
+  check(bareSuffix.transaction.date.equals("2026-11-15"),"its year-first date is read");
+  check(Alerts.route("VM-HDFCBK","Spent Rs.295 On HDFC Bank Card 5678 At Swiggy On 2026-11-15:00:29:13.Not You? Call 18002586161/SMS BLOCK CC 5678 to 7308080808",NOW,hdfc)==null,
+   "a bare suffix for another card is not taken for this one");
+  check(Alerts.route("VM-HDFCBK","Rs.1234 spent on HDFC Bank Card x5678 at SWIGGY on 2026-11-13:00:30:59",NOW,hdfc)==null,
+   "an amount equal to the suffix is not taken for the card number");
+  check(Alerts.route("VM-HDFCBK","Rs.250 spent on HDFC Bank Card used at MAX 1234 on 2026-11-13",NOW,hdfc)==null,
+   "the X ending a word such as MAX is not read as a mask");
+  check(Alerts.route("VM-HDFCBK","Rs.250 spent on HDFC Bank Card**1234 at CAFE on 2026-11-13",NOW,hdfc)!=null,
+   "asterisks straight after the word still mask the suffix");
+  check(Alerts.route("VM-HDFCBK","Rs.250 spent on HDFC Bank Card no 1234 at CAFE",NOW,hdfc)!=null,"\"Card no 1234\" names the card");
+  check(Alerts.route("VM-HDFCBK","Rs.250 spent on HDFC Bank Card at CAFE on 2026-12-30:10:00:00",NOW,java.util.Arrays.asList(target(9,"1234","HDFC")))==null,
+   "an alert naming no suffix at all is not taken");
+  Alerts.Match future=Alerts.route("VM-HDFCBK","Spent Rs.295 On HDFC Bank Card 1234 At Swiggy On 2027-01-15:00:29:13",NOW,hdfc);
+  check(future!=null&&future.transaction.date.equals("2026-11-21"),"an implausible future date falls back to the day the message arrived");
+  java.util.List<Alerts.Target> hdfcCredit=java.util.Arrays.asList(target(9,"1234","HDFC"));
+  Alerts.Match paid=Alerts.route("VM-HDFCBK","Payment of Rs.6399.00 received on your HDFC Bank Card x1234 on 2026-11-18:10:00:00. Thank you.",NOW,hdfcCredit);
+  check(paid!=null&&paid.credit&&paid.transaction.date.equals("2026-11-18"),"a credit uses the same suffix and date reading");
+
   check(Alerts.fold("AD-AXISBK").equals("ad axisbk"),"sender ids flatten to searchable words");
   check(Alerts.fold("AD-AXISBK").contains("axis"),"a sender id still carries the bank's name");
 

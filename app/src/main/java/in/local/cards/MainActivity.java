@@ -43,8 +43,7 @@ public class MainActivity extends Activity {
  /** +1 when the next draw arrives from the right, -1 from the left, 0 when it does not move. */
  int slide;
  /** True until the screen's first draw, whose cards rise in; true during any draw that animates. */
- boolean entrance=true,animating;
- GestureDetector swipes;
+ boolean entrance=true,animating,fade;
  @Override public void onCreate(Bundle b){g=Cards.global(this);
   device=getIntent()!=null&&getIntent().getBooleanExtra(EXTRA_DEVICE,false);
   card=device?null:Cards.card(this,getIntent()==null?0:getIntent().getIntExtra(Cards.EXTRA_CARD,0));
@@ -63,7 +62,7 @@ public class MainActivity extends Activity {
   if(current==null){finish();return;}
   card=current;plan=Cards.plan(this,cardId);
   IntentFilter f=new IntentFilter("in.local.cards.CHANGED");if(Build.VERSION.SDK_INT>=33)registerReceiver(changed,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changed,f);registered=true;if(pendingNotificationEnable){pendingNotificationEnable=false;if(access()&&savedCardReady())startCapture();}draw();}
- @Override public void onPause(){flushSettings();if(card!=null)rememberScroll();if(registered){unregisterReceiver(changed);registered=false;}super.onPause();}
+ @Override public void onPause(){flushSettings();if(card!=null){rememberScroll();HomeActivity.forget(cardId);}if(registered){unregisterReceiver(changed);registered=false;}super.onPause();}
  @Override public void onDestroy(){flushSettings();settingsHandler.removeCallbacksAndMessages(null);if(store!=null)store.close();super.onDestroy();}
  int themeColor(int attribute){android.util.TypedValue value=new android.util.TypedValue();getTheme().resolveAttribute(attribute,value,true);return value.data;}
  void applyPalette(){
@@ -152,15 +151,15 @@ public class MainActivity extends Activity {
   }
   add(root,nav);gap(root,8);
   if(!device&&tab.equals("Activity"))activityActions();
-  scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setVerticalScrollBarEnabled(tab.equals("Activity"));scroll.setHorizontalScrollBarEnabled(false);scroll.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);scroll.setFocusableInTouchMode(true);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));body=column();body.setPadding(0,dp(6),0,dp(24));scroll.addView(body);
+  scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setVerticalScrollBarEnabled(false);scroll.setHorizontalScrollBarEnabled(false);scroll.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);scroll.setFocusableInTouchMode(true);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));body=column();body.setPadding(0,dp(6),0,dp(24));scroll.addView(body);
   renderedPage=pageKey();
   if(device)deviceSettings();else if(tab.equals("Settings"))settings();else{period();if(tab.equals("Overview"))overview();else activity();}
   // A tab slides in from the side it was reached from; a freshly opened screen's cards rise in.
-  if(slide!=0)Motion.slideIn(body,slide,dp(56));else if(entrance)Motion.stagger(body,dp(22));
-  slide=0;entrance=false;animating=false;
+  if(slide!=0)Motion.slideIn(body,slide,dp(56));else if(entrance)Motion.stagger(body,dp(22));else if(fade)Motion.fadeIn(body);
+  slide=0;entrance=false;animating=false;fade=false;
   restoreScroll();
  }
- void period(){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);Button prev=button("‹",v->{anchor=start().minusDays(1);draw();});prev.setContentDescription("Previous reward period");row.addView(prev,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView t=text(start().format(DateTimeFormatter.ofPattern("d MMM"))+" to "+end().format(DateTimeFormatter.ofPattern("d MMM yyyy")),15,INK,true);t.setGravity(Gravity.CENTER);row.addView(t,new LinearLayout.LayoutParams(0,-2,1));Button next=button("›",v->{anchor=end().plusDays(1);draw();});next.setContentDescription("Next reward period");row.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));add(body,row);TextView mode=text(day()==0?"Calendar month" : "Statement period · closes on day "+day(),12,MUTED,false);mode.setGravity(Gravity.CENTER);add(body,mode);gap(body,16);}
+ void period(){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);Button prev=button("‹",v->{anchor=start().minusDays(1);slide=-1;draw();});prev.setContentDescription("Previous reward period");row.addView(prev,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView t=text(start().format(DateTimeFormatter.ofPattern("d MMM"))+" to "+end().format(DateTimeFormatter.ofPattern("d MMM yyyy")),15,INK,true);t.setGravity(Gravity.CENTER);row.addView(t,new LinearLayout.LayoutParams(0,-2,1));Button next=button("›",v->{anchor=end().plusDays(1);slide=1;draw();});next.setContentDescription("Next reward period");row.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));add(body,row);TextView mode=text(day()==0?"Calendar month" : "Statement period · closes on day "+day(),12,MUTED,false);mode.setGravity(Gravity.CENTER);add(body,mode);gap(body,16);}
  // The figures and every rate in the wording come from this card's reward plan. With
  // the HSBC Live+ preset they are Engine.totals' own numbers, which RewardsTest checks.
  void overview(){
@@ -226,7 +225,7 @@ public class MainActivity extends Activity {
   actions.addView(button("Paste alert",v->paste()),right);
   add(root,actions);
   int count=Rows.reviewCount(store.all(),start(),end());
-  Button review=button((reviewOnly?"✓ ":"")+"Needs review"+(count>0?" ("+count+")":""),v->{reviewOnly=!reviewOnly;draw();});
+  Button review=button((reviewOnly?"✓ ":"")+"Needs review"+(count>0?" ("+count+")":""),v->{reviewOnly=!reviewOnly;fade=true;draw();});
   styleTab(review,reviewOnly,count>0);
   review.setContentDescription("Needs review, "+count+" item"+(count==1?"":"s")+" in this period. "+(reviewOnly?"Filter on. Tap to show all transactions.":"Tap to show only items needing review."));
   add(root,review);gap(root,6);
@@ -248,8 +247,8 @@ public class MainActivity extends Activity {
   EditText e=new EditText(this);e.setText(value);e.setTextSize(16);e.setTextColor(INK);e.setHintTextColor(MUTED);e.setInputType(type);e.setSingleLine(true);
   add(l,e);gap(l,14);return e;
  }
- LinearLayout dialogBody(){LinearLayout l=column();l.setPadding(dp(24),dp(6),dp(24),dp(6));return l;}
- ScrollView scrolled(LinearLayout l){ScrollView s=new ScrollView(this);s.addView(l);return s;}
+ LinearLayout dialogBody(){LinearLayout l=column();l.setPadding(dp(24),dp(6),dp(24),dp(6));l.setLayoutTransition(new android.animation.LayoutTransition());return l;}
+ ScrollView scrolled(LinearLayout l){ScrollView s=new ScrollView(this);s.setVerticalScrollBarEnabled(false);s.addView(l);return s;}
  void dateInput(LinearLayout parent,LocalDate[] selected){
   add(parent,text("Date",13,MUTED,true));
   DateTimeFormatter format=DateTimeFormatter.ofPattern("d MMM yyyy",Locale.ENGLISH);
@@ -375,12 +374,10 @@ public class MainActivity extends Activity {
   LinearLayout merchants=card(body,SURFACE);add(merchants,text("Merchant categories",23,INK,true));gap(merchants,8);
   add(merchants,button("Manage merchant categories",v->merchantRules()));
   LinearLayout data=card(body,SURFACE);add(data,text("Your data",23,INK,true));gap(data,8);add(data,text("This card's ledger is stored in this app’s private storage. Uninstalling removes it. Export a backup before reinstalling or changing phones. Backups contain financial data. store them privately.",13,MUTED,false));add(data,button("Export backup (JSON)",v->export()));add(data,button("Restore backup",v->restore()));add(data,button("Erase this card's ledger",v->new AlertDialog.Builder(this).setTitle("Erase this ledger?").setMessage("This removes every transaction, merchant rule and setting for "+card.name+". Other cards are untouched. Export a backup first if you need it.").setNegativeButton("Cancel",null).setPositiveButton("Erase",(a,b)->{store.wipe();p.edit().clear().apply();Cards.savePlan(this,cardId,plan);scrollPositions.clear();toast("This card's ledger was erased");recreate();}).show()));
-  LinearLayout rules=card(body,SURFACE);add(rules,text("Reward rules & limits",21,INK,true));gap(rules,8);
   if(Cards.usesBuiltInCategories(plan)){
+   LinearLayout rules=card(body,SURFACE);add(rules,text("Reward rules & limits",21,INK,true));gap(rules,8);
    add(rules,text("Rules checked 3 Nov 2026: 10% up to ₹1,200 per month on eligible dining, grocery, shopping and utilities. Most other eligible spends earn 1.5%. Amazon, Flipkart and Myntra shopping earn 1.5%. Fuel and several other merchant codes are excluded. International transactions should be marked excluded.\n\nUnknown categories are left out of estimates. Suggested categories are provisional. Accelerated spend beyond the cap earns no additional cashback in this estimate. Refunds require linking. The estimate does not predict exact bank rounding, delayed posting, cross-period clawbacks, fee-waiver eligibility or welcome offers.\n\nChanging period or cap applies to all displayed history. Check your statement and amend categories or dates when necessary.",13,MUTED,false));
    add(rules,button("Open HSBC service guide",v->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.hsbc.bank.in/content/dam/hsbc/in/documents/credit-cards/live-plus-credit-card-services-guide.pdf")))));
-  }else{
-   add(rules,text("This card uses the reward plan you entered above, so check it against your own card terms. Merchant suggestions from the built-in catalogue apply to the HSBC Live+ plan only; on this card, categories come from your own merchant mappings until you set one.\n\nUnknown categories are left out of estimates. Refunds require linking. The estimate does not predict exact bank rounding, delayed posting, cross-period clawbacks, fee waivers or welcome offers.\n\nChanging the period, cap or rates applies to all displayed history.",13,MUTED,false));
   }
   gap(body,8);add(body,text("Cards Ledger "+appVersion()+"\nIndependent personal tracker. No affiliation with "+card.issuer+".",12,MUTED,false));
  }
@@ -514,32 +511,66 @@ public class MainActivity extends Activity {
   slide=tabIndex(next)>tabIndex(tab)?1:-1;
   tab=next;reviewOnly=false;draw();
  }
- /**
-  * Swipe left for the next tab and right for the previous one; swiping right from Overview, or
-  * from the device settings, goes back. A swipe has to be clearly sideways and quick, so a
-  * slanted scroll never changes tab, and the lifted finger is not also delivered as a tap.
+ /*
+  * Sideways drags move the page with the finger. Let go past a third of the screen, or with a
+  * quick flick, and it carries on into the next tab (left) or the previous one (right); from
+  * Overview, or from the device settings, a right drag goes back. Anything less springs back.
+  * The drag only starts once the finger is clearly moving sideways, so vertical scrolling is
+  * untouched, and the views under the finger are cancelled so nothing is tapped by accident.
   */
+ float downX,downY,origin;boolean dragging,decided;VelocityTracker velocity;
+ int screenWidth(){return Math.max(1,getWindow().getDecorView().getWidth());}
+ /** -1 for the previous tab or back, +1 for the next tab, 0 when nothing lies that way. */
+ int destination(float move){
+  if(device)return move>0?-1:0;
+  if(move<0)return tabIndex(tab)<TABS.length-1?1:0;
+  return -1;
+ }
  @Override public boolean dispatchTouchEvent(MotionEvent event){
-  if(card!=null||device){
-   if(swipes==null)swipes=new GestureDetector(this,new GestureDetector.SimpleOnGestureListener(){
-    @Override public boolean onFling(MotionEvent down,MotionEvent up,float vx,float vy){
-     if(down==null||up==null)return false;
-     float dx=up.getX()-down.getX(),dy=up.getY()-down.getY();
-     if(Math.abs(dx)<dp(72)||Math.abs(dx)<Math.abs(dy)*1.6f||Math.abs(vx)<dp(260))return false;
-     if(device){if(dx>0){finish();return true;}return false;}
-     int at=tabIndex(tab);
-     if(dx<0){if(at<TABS.length-1){go(TABS[at+1]);return true;}return false;}
-     if(at>0)go(TABS[at-1]);else finish();
-     return true;
-    }
-   });
-   if(swipes.onTouchEvent(event)&&event.getActionMasked()==MotionEvent.ACTION_UP){
+  if((card==null&&!device)||body==null)return super.dispatchTouchEvent(event);
+  int action=event.getActionMasked();
+  if(action==MotionEvent.ACTION_DOWN){
+   downX=event.getRawX();downY=event.getRawY();dragging=false;decided=false;
+   if(velocity!=null)velocity.recycle();
+   velocity=VelocityTracker.obtain();
+  }
+  if(velocity!=null)velocity.addMovement(event);
+  if(action==MotionEvent.ACTION_MOVE&&!decided){
+   float dx=event.getRawX()-downX,dy=event.getRawY()-downY,slop=ViewConfiguration.get(this).getScaledTouchSlop()*1.5f;
+   if(Math.abs(dx)>slop&&Math.abs(dx)>Math.abs(dy)*1.5f){
+    decided=true;dragging=true;origin=event.getRawX();
+    body.animate().cancel();
     MotionEvent cancel=MotionEvent.obtain(event);cancel.setAction(MotionEvent.ACTION_CANCEL);
     super.dispatchTouchEvent(cancel);cancel.recycle();
-    return true;
-   }
+   }else if(Math.abs(dy)>slop)decided=true;
   }
-  return super.dispatchTouchEvent(event);
+  if(!dragging)return super.dispatchTouchEvent(event);
+  float move=event.getRawX()-origin;
+  if(action==MotionEvent.ACTION_MOVE){
+   // The page follows the finger, and resists where there is nowhere to go.
+   float shift=destination(move)==0?move*0.18f:move*0.9f;
+   body.setTranslationX(shift);
+   body.setAlpha(1f-Math.min(0.45f,Math.abs(shift)/(screenWidth()*1.3f)));
+   return true;
+  }
+  if(action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL){
+   dragging=false;
+   velocity.computeCurrentVelocity(1000);
+   float vx=velocity.getXVelocity();
+   int to=destination(move);
+   boolean far=Math.abs(move)>screenWidth()*0.3f;
+   boolean flung=Math.abs(vx)>dp(600)&&Math.signum(vx)==Math.signum(move)&&Math.abs(move)>dp(24);
+   if(action==MotionEvent.ACTION_UP&&to!=0&&(far||flung))settle(to,move);
+   else body.animate().translationX(0f).alpha(1f).setStartDelay(0).setDuration(Motion.MEDIUM).setInterpolator(new android.view.animation.OvershootInterpolator(0.9f)).start();
+  }
+  return true;
+ }
+ /** Carries the page off the way it was dragged, then opens where it was heading. */
+ void settle(int to,float move){
+  if(device||(to<0&&tabIndex(tab)==0)){finish();return;}
+  final String next=TABS[tabIndex(tab)+to];
+  body.animate().translationX(Math.signum(move)*screenWidth()).alpha(0f).setStartDelay(0).setDuration(Motion.SHORT)
+   .setInterpolator(Motion.EASE).withEndAction(()->go(next)).start();
  }
  /** Leaving a card slides back toward the grid. */
  @Override public void finish(){super.finish();overridePendingTransition(R.anim.enter_back,R.anim.exit_back);}

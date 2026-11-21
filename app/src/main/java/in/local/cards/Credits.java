@@ -13,13 +13,10 @@ import java.util.regex.*;
  * separate reader rather than a change to it. A refund against a purchase is left to
  * the purchase parser, which already records and links those; this only takes what it turns away.
  *
- * <p>The amount and card-suffix patterns are deliberately the same shape as Engine's. They are
- * restated here because Engine's are private and this reads a different kind of message; if
- * Engine's change, check whether these want the same change.
+ * <p>The amount, the card suffix and the date are read with Engine's own helpers, so every
+ * wording the purchase parser understands is understood here too.
  */
 public final class Credits {
- private static final Pattern AMOUNT=Pattern.compile("(?i)(?:INR|Rs\\.?|₹)\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)(?![0-9.])");
- private static final Pattern CARD=Pattern.compile("(?i)(?:card|cc)\\b[^.\\n]{0,50}?(?:ending(?:\\s+with|\\s+in)?|end|[xX*•]{2,}|no\\.?|number)[:\\s.xX*•-]*([0-9]{4})(?![0-9])");
  private static final Pattern REJECT=Pattern.compile("(?i)\\b(otp|one.time.password|verification.code|declined|failed|unsuccessful|attempt|blocked|cancelled)\\b");
  /** The purchase parser owns refunds against a purchase, so they are not credits here. */
  private static final Pattern REFUND=Pattern.compile("(?i)\\b(refund(?:ed)?|reversal|reversed)\\b");
@@ -33,8 +30,6 @@ public final class Credits {
   +"|\\bpayment\\b[^\\n]{0,80}?\\b(?:received|towards|credited)\\b"
   +"|\\breceived\\b[^\\n]{0,60}?\\btowards\\b"
   +"|thank\\s+you\\s+for\\s+(?:your\\s+)?payment)");
- private static final Pattern DATE=Pattern.compile("(?i)\\b([0-9]{1,2}[-/](?:[0-9]{1,2}|[A-Z]{3})[-/][0-9]{2,4})\\b");
- private static final String[] DATE_FORMATS={"d/M/uuuu","d-M-uuuu","d/M/uu","d-M-uu","d-MMM-uuuu","d-MMM-uu"};
 
  /** What a credit alert says. {@code note} is the wording shown in the ledger. */
  public static final class Posted {
@@ -56,21 +51,15 @@ public final class Credits {
   if(REFUND.matcher(body).find())return null;
   if(SPEND.matcher(body).find())return null;
   if(!CREDIT.matcher(body).find())return null;
-  Matcher card=CARD.matcher(all);
-  boolean matched=false;
-  while(card.find())if(card.group(1).equals(last4))matched=true;
-  if(!matched)return null;
-  Matcher amount=AMOUNT.matcher(body);
+  if(!Engine.namesCard(all,last4))return null;
+  Matcher amount=Engine.AMOUNT.matcher(body);
   if(!amount.find())return null;
   Posted posted=new Posted();
   try{posted.amount=Engine.money(amount.group(1));}catch(RuntimeException ignored){return null;}
   if(posted.amount<=0||posted.amount>1000000000L)return null;
-  posted.date=Instant.ofEpochMilli(time).atZone(ZoneId.of("Asia/Kolkata")).toLocalDate().toString();
-  Matcher date=DATE.matcher(body);
-  if(date.find())for(String format:DATE_FORMATS)try{
-   LocalDate found=LocalDate.parse(date.group(1),new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern(format).toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT));
-   if(!found.isAfter(LocalDate.parse(posted.date).plusDays(1))&&found.getYear()>=2020){posted.date=found.toString();break;}
-  }catch(RuntimeException ignored){}
+  LocalDate received=Instant.ofEpochMilli(time).atZone(ZoneId.of("Asia/Kolkata")).toLocalDate();
+  LocalDate stated=Engine.statedDate(body,received);
+  posted.date=(stated==null?received:stated).toString();
   posted.note=note(body);
   return posted;
  }
