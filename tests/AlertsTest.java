@@ -1,4 +1,5 @@
 import in.local.liveplus.Alerts;
+import in.local.liveplus.Engine;
 import in.local.liveplus.NotificationCapture;
 import in.local.liveplus.SmsCapture;
 import java.time.*;
@@ -73,6 +74,26 @@ public class AlertsTest {
   check(Alerts.route("AX-HSBCBK","INR 500 spent on HSBC Credit Card ending 1234 at CAFE",NOW,
    Collections.<Alerts.Target>emptyList())==null,"no cards means no capture");
   check(Alerts.route(null,null,NOW,CARDS)==null,"missing text is handled");
+
+  // Merchant wording that upstream's parser does not read, because HSBC does not use it.
+  Alerts.Match realIcici=route("AD-ICICIT","INR 50.00 spent using ICICI Bank Card XX1234 on 21-Nov-26 on AMAZON PAY IN R. Avl Limit: INR 5,97,445.42. If not you, call 1800 2662/SMS BLOCK 1234 to 9215676766.");
+  check(realIcici!=null,"the ICICI alert from the phone parses");
+  check(realIcici.transaction.merchant.equals("AMAZON PAY IN R"),"\"on <date> on <merchant>\" reads the merchant");
+  check(realIcici.transaction.amount==5000&&realIcici.transaction.date.equals("2026-11-21"),"amount and date still come from upstream's parser");
+
+  Alerts.Match axisLine=route("AD-AXISBK","Spent Card no. XX5678 INR 250.00 21-11-26 19:42:11 BLINKIT Avl Lmt INR 98,000");
+  check(axisLine!=null&&axisLine.transaction.merchant.equals("BLINKIT"),"a merchant between the time and the available limit is read");
+  Alerts.Match dated=route("AD-AXISBK","INR 99.00 spent on Axis Bank Card XX5678 21-Nov-26 ZEPTO MARKETPLACE Avl Lmt INR 10,000");
+  check(dated!=null&&dated.transaction.merchant.equals("ZEPTO MARKETPLACE"),"a merchant between the date and the available limit is read");
+
+  // Upstream's own reading always wins, and a fallback never invents a name.
+  Alerts.Match hsbcNamed=route("AX-HSBCBK","INR 100 spent on your HSBC Credit Card ending 1234 at SWIGGY on 21/11/2026");
+  check(hsbcNamed.transaction.merchant.equals("SWIGGY"),"upstream's merchant is never overridden");
+  Alerts.Match bare=route("AD-AXISBK","INR 75.00 spent on Axis Bank Credit Card XX5678");
+  check(bare!=null&&bare.transaction.merchant.equals("Unknown merchant"),"an alert naming no merchant stays unknown");
+  Engine.Parsed digitsOnly=new Engine.Parsed();digitsOnly.merchant="Unknown merchant";
+  Alerts.name(digitsOnly,"INR 10 spent on Card XX1234 on 21-Nov-26 on 1800 2662");
+  check(digitsOnly.merchant.equals("Unknown merchant"),"a run of digits is not taken for a merchant name");
 
   check(Alerts.fold("AD-AXISBK").equals("ad axisbk"),"sender ids flatten to searchable words");
   check(Alerts.fold("AD-AXISBK").contains("axis"),"a sender id still carries the bank's name");

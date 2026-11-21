@@ -62,6 +62,11 @@ final class PlanEditor {
   final CheckBox down=new CheckBox(host);
   down.setText("Round down rather than to the nearest");down.setChecked(existing!=null&&!existing.round);
   host.add(l,down);
+  final EditText ceiling=host.input(l,"Most this category pays in a period, blank for no limit",
+   existing!=null&&existing.ceiling>0?host.BigDecimalValue(existing.ceiling):"",8194);
+  final EditText merchants=host.input(l,"Merchants that count here, comma separated",
+   existing==null?"":join(existing.merchants),1);
+  host.add(l,host.text("A merchant listed here is categorised automatically until you save a different category for it.",12,host.MUTED,false));
   host.add(l,host.text("Rounding applies once to all categories paying this same rate, as the bank's own statement does.",12,host.MUTED,false));
   AlertDialog dialog=new AlertDialog.Builder(host).setTitle(existing==null?"Add a category":"Edit category "+index)
    .setView(host.scrolled(l)).setPositiveButton("Save",null).setNegativeButton("Cancel",(d,w)->open())
@@ -70,11 +75,14 @@ final class PlanEditor {
    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
     try{
      boolean pointsBased=kind.getSelectedItemPosition()==1;
+     String limit=ceiling.getText().toString().trim();
      RewardPlan.Category edited=new RewardPlan.Category(name.getText().toString().trim(),
       pointsBased?0:bps(rate.getText().toString()),
       pointsBased?whole(points.getText().toString()):0,
       pointsBased?Engine.money(block.getText().toString().trim()):0,
-      capped.isChecked(),!down.isChecked());
+      capped.isChecked(),!down.isChecked(),
+      limit.isEmpty()?0:Engine.money(limit),
+      split(merchants.getText().toString()));
      List<RewardPlan.Category> categories=new ArrayList<>(host.plan.categories);
      if(existing==null)categories.add(edited);else categories.set(index-1,edited);
      save(rebuild(host.plan,categories));
@@ -181,6 +189,19 @@ final class PlanEditor {
   Cards.savePlan(host,host.cardId,plan);
   host.plan=Cards.plan(host,host.cardId);
   host.draw();
+ }
+ private static String join(List<String> values){
+  StringBuilder out=new StringBuilder();
+  for(String value:values)out.append(out.length()==0?"":", ").append(value);
+  return out.toString();
+ }
+ private static List<String> split(String value){
+  List<String> out=new ArrayList<>();
+  for(String part:(value==null?"":value).split(",")){
+   String name=part.trim();
+   if(!name.isEmpty()&&out.size()<40)out.add(name);
+  }
+  return out;
  }
  /** "10" or "1.5" as basis points. */
  private static int bps(String value){

@@ -1,6 +1,7 @@
 package in.local.liveplus;
 
 import java.util.*;
+import java.util.regex.*;
 
 /**
  * Decides which card an incoming alert belongs to.
@@ -48,7 +49,7 @@ public final class Alerts {
    if(!target.ready())continue;
    if(!haystack.contains(fold(target.issuer)))continue;
    if(!senderMatches(senderField,target.senders))continue;
-   Engine.Parsed parsed=Engine.parse(gate(safeContext,target.issuer),body,target.last4,time);
+   Engine.Parsed parsed=parse(safeContext,body,target.last4,time,target.issuer);
    if(parsed!=null)out.add(new Match(target.cardId,parsed));
   }
   return out;
@@ -57,6 +58,44 @@ public final class Alerts {
   * token upstream's gate looks for. */
  public static String gate(String context,String issuer){
   return (context==null?"":context)+" "+(issuer==null?"":issuer)+" HSBC";
+ }
+ /** Upstream's parser, then this fork's merchant fallbacks for banks that word alerts their own way. */
+ public static Engine.Parsed parse(String context,String body,String last4,long time,String issuer){
+  Engine.Parsed parsed=Engine.parse(gate(context,issuer),body,last4,time);
+  if(parsed!=null)name(parsed,body);
+  return parsed;
+ }
+
+ /**
+  * Upstream reads the merchant from "at ...", "towards ..." or "merchant: ...", which is how HSBC
+  * writes an alert. Other banks do not: ICICI writes "on 21-Nov-26 on AMAZON PAY IN R" and Axis
+  * puts the merchant on its own line between the time and the available limit. These patterns run
+  * only when upstream found no merchant, so its own reading is never overridden.
+  */
+ private static final Pattern[] MERCHANT_FALLBACKS={
+  // ICICI: "... spent using ICICI Bank Card XX1001 on 21-Nov-26 on AMAZON PAY IN R."
+  Pattern.compile("(?i)\\bon\\s+[0-9]{1,2}[-/](?:[0-9]{1,2}|[A-Za-z]{3,9})[-/][0-9]{2,4}\\s+(?:at|on|to)\\s+(.+?)(?=[.;\\n]|$)"),
+  // Axis and others: the merchant sits after a date or time and before the available limit.
+  Pattern.compile("(?i)[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?\\s+(?:at\\s+|on\\s+)?(.+?)\\s*(?=[.;\\n]|\\b(?:avl|available|avbl)\\b)"),
+  Pattern.compile("(?i)[0-9]{1,2}[-/](?:[0-9]{1,2}|[A-Za-z]{3,9})[-/][0-9]{2,4}\\s+(?:at\\s+|on\\s+)?(.+?)\\s*(?=[.;\\n]|\\b(?:avl|available|avbl)\\b)")
+ };
+ /** Fills in the merchant when upstream could not read one. */
+ public static void name(Engine.Parsed parsed,String body){
+  if(parsed==null||body==null||!"Unknown merchant".equals(parsed.merchant))return;
+  for(Pattern pattern:MERCHANT_FALLBACKS){
+   Matcher found=pattern.matcher(body);
+   if(!found.find())continue;
+   String merchant=clean(found.group(1));
+   if(merchant.isEmpty())continue;
+   parsed.merchant=merchant;
+   return;
+  }
+ }
+ private static String clean(String value){
+  String merchant=value.replace(' ',' ').replaceAll("\\s+"," ").trim().replaceAll("^[\\s,.:;-]+|[\\s,.:;-]+$","");
+  // Guard against a pattern swallowing the rest of a sentence.
+  if(merchant.length()>90)merchant=merchant.substring(0,90).trim();
+  return merchant.matches(".*[A-Za-z].*")?merchant:"";
  }
  /** True when this card's bank and sender gates accept the alert, before any parsing. */
  public static boolean accepts(String context,String body,Target target){
@@ -87,7 +126,7 @@ public final class Alerts {
   for(Target target:targets){
    if(!accepts(first.sender,body.toString(),target))continue;
    SmsCapture.Candidate candidate=SmsCapture.collect(withGate(parts,target.issuer),target.last4,started,received,subscription);
-   if(candidate!=null)return new SmsMatch(target.cardId,candidate);
+   if(candidate!=null){name(candidate.transaction,body.toString());return new SmsMatch(target.cardId,candidate);}
   }
   return null;
  }

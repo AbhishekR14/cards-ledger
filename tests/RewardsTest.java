@@ -120,6 +120,16 @@ public class RewardsTest {
   check(mixed.remainingSpend==-1,"two capped rates cannot state headroom as one spend figure");
   check(mixed.remainingReward==43000,"two capped rates state headroom as reward left");
 
+  // A tier with its own ceiling stops there without touching the others.
+  RewardPlan swiggy=RewardPlan.swiggyHdfc();
+  Rewards.Totals big=Rewards.totals(Arrays.asList(tx(1,3000000,1,"2026-11-05"),tx(2,3000000,2,"2026-11-06"),tx(3,100000,3,"2026-11-07")),START,END,swiggy);
+  check(big.lines.get(0).reward==150000,"the 10% tier stops at its own ₹1,500 ceiling");
+  check(big.lines.get(1).reward==150000,"the 5% tier has its own ceiling, not a shared one");
+  check(big.lines.get(2).reward==1000,"the 1% tier is uncapped");
+  check(big.reward==301000,"ceilings apply per tier and then add up");
+  check(Rewards.totals(Arrays.asList(tx(1,100000,1,"2026-11-05")),START,END,swiggy).reward==10000,
+   "spend below the ceiling earns the full rate");
+
   RewardPlan points=RewardPlan.rewardPoints();
   Rewards.Totals earned=Rewards.totals(Arrays.asList(tx(1,160000,1,"2026-11-05")),START,END,points);
   check(earned.reward==100,"points accrue on whole spend blocks only");

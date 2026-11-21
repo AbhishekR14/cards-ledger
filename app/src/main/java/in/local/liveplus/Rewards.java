@@ -75,6 +75,8 @@ public final class Rewards {
    long earning=spend,reward;
    if(category.capped&&capSpendLeft!=Long.MAX_VALUE){earning=Math.min(spend,Math.max(0,capSpendLeft));capSpendLeft-=earning;}
    reward=earn(category,earning);
+   // A tier with its own ceiling stops there, whatever the plan's shared cap does.
+   if(category.ceiling>0)reward=Math.min(category.ceiling,reward);
    if(category.capped){t.cappedSpend+=spend;t.cappedRewardBeforeCap+=reward;}
    else if(paying){t.baseSpend+=spend;t.baseReward+=reward;}
    else t.excludedSpend+=spend;

@@ -48,14 +48,17 @@ public final class Store extends SQLiteOpenHelper {
   SQLiteDatabase db=getWritableDatabase();db.beginTransaction();
   try{rule(merchant,category);if(previous!=null&&!Engine.key(previous).equals(Engine.key(merchant)))forgetRule(previous);db.setTransactionSuccessful();}finally{db.endTransaction();}
  }
- public void categorize(Engine.Tx x,boolean myntraPromo){categorize(x,myntraPromo,true);}
- // MULTI-CARD: upstream's merchant catalogue returns HSBC Live+ category numbers. A card on
- // another plan numbers its categories differently, so only its own saved mappings apply there.
- public void categorize(Engine.Tx x,boolean myntraPromo,boolean suggest){
+ public void categorize(Engine.Tx x,boolean myntraPromo){categorize(x,myntraPromo,true,null);}
+ // MULTI-CARD: upstream's merchant catalogue returns HSBC Live+ category numbers, so it only
+ // applies to a plan with those categories. Otherwise the card's own saved mappings come first
+ // and the plan's own merchant lists fill the gaps.
+ public void categorize(Engine.Tx x,boolean myntraPromo,boolean suggest){categorize(x,myntraPromo,suggest,null);}
+ public void categorize(Engine.Tx x,boolean myntraPromo,boolean suggest,RewardPlan plan){
   if(x.refund){x.category=0;x.confirmed=false;return;}
   int remembered=rule(x.merchant);
   x.category=suggest?Engine.category(x.merchant,java.time.LocalDate.parse(x.date),myntraPromo,remembered)
    :(remembered>0?remembered:0);
+  if(x.category==0&&plan!=null)x.category=plan.suggest(x.merchant);
   x.confirmed=suggest?remembered>0&&remembered<Engine.CATEGORIES.length:remembered>0;
  }
  public JSONArray exportRows() throws JSONException {

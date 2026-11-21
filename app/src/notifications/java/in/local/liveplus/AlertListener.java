@@ -62,6 +62,9 @@ public class AlertListener extends NotificationListenerService {
     String key=cacheKey(input,target.cardId);
     NotificationCapture.Batch batch=NotificationCapture.collect(Alerts.withGate(input,target.issuer),target.last4,started,NotificationCapture.State.decode(p.getString(key,null)));
     boolean claimed=false;
+    // MULTI-CARD: fill in a merchant upstream's parser could not read, but only when this alert
+    // held one transaction, so a grouped conversation cannot lend its merchant to another.
+    if(batch.candidates.size()==1)Alerts.name(batch.candidates.get(0).transaction,input.bigText+" "+input.text);
     for(NotificationCapture.Candidate candidate:batch.candidates){
      int result=capture(target.cardId,candidate);if(result>0){candidate.processed();claimed=true;}
     }

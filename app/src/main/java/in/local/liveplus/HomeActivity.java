@@ -102,7 +102,7 @@ public class HomeActivity extends Activity {
   for(int i=0;i<tiles.size();i+=2){
    LinearLayout row=new LinearLayout(this);
    for(int column=0;column<2;column++){
-    LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(0,dp(158),1);
+    LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(0,dp(176),1);
     layout.bottomMargin=dp(12);
     if(column==1)layout.setMarginStart(dp(12));
     if(i+column<tiles.size())row.addView(tiles.get(i+column),layout);
@@ -125,27 +125,31 @@ public class HomeActivity extends Activity {
   LinearLayout tile=column();
   tile.setPadding(dp(16),dp(16),dp(16),dp(16));
   tile.setBackground(background(card.accent,20));
+  // The tile leads with what was spent this period; the reward it earned sits under it.
+  String earnedText=plan.pointsUnit()?totals.reward+(totals.reward==1?" pt":" pts"):cash(earned);
   add(tile,text(card.name,17,Color.WHITE,true));
   add(tile,text(card.issuer+(four.isEmpty()?"":"  ···· "+four),12,Color.rgb(202,220,222),false));
-  gap(tile,10);
-  add(tile,text(plan.pointsUnit()?totals.reward+" pts":cash(earned),24,MINT,true));
-  add(tile,text(capped?"of "+(plan.pointsUnit()?plan.capAmount+" pts":cash(plan.capAmount)):"this period",11,Color.rgb(202,220,222),false));
+  gap(tile,8);
+  add(tile,text(cash(totals.totalSpend),24,Color.WHITE,true));
+  add(tile,text("spent this period",11,Color.rgb(202,220,222),false));
+  gap(tile,6);
+  add(tile,text(capped?earnedText+" of "+(plan.pointsUnit()?plan.capAmount+" pts":cash(plan.capAmount)):earnedText+" earned",13,MINT,true));
   if(capped){
    ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
    bar.setMax(1000);bar.setProgress((int)Math.min(1000,earned*1000/Math.max(1,plan.capAmount)));
    bar.setProgressTintList(ColorStateList.valueOf(MINT));bar.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(61,82,86)));
-   LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);layout.topMargin=dp(8);
+   LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);layout.topMargin=dp(6);
    tile.addView(bar,layout);
   }
   LinearLayout footer=new LinearLayout(this);footer.setGravity(Gravity.BOTTOM);
-  footer.addView(text(totals.review>0?"● "+totals.review+" to review":cash(totals.totalSpend)+" spent",11,totals.review>0?Color.rgb(255,173,144):Color.rgb(202,220,222),totals.review>0),new LinearLayout.LayoutParams(0,-2,1));
+  if(totals.review>0)footer.addView(text("● "+totals.review+" to review",11,Color.rgb(255,173,144),true),new LinearLayout.LayoutParams(0,-2,1));
   LinearLayout.LayoutParams footerLayout=new LinearLayout.LayoutParams(-1,0,1);
-  footerLayout.topMargin=dp(6);
+  footerLayout.topMargin=dp(4);
   tile.addView(footer,footerLayout);
   tile.setOnClickListener(v->startActivity(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id)));
   tile.setOnLongClickListener(v->{manage(card);return true;});
   tile.setContentDescription(card.name+", "+card.issuer+(four.isEmpty()?"":" ending "+four)+", "
-   +(plan.pointsUnit()?totals.reward+" points":cash(earned))+" this period"
+   +cash(totals.totalSpend)+" spent this period, "+earnedText+" earned"
    +(totals.review>0?", "+totals.review+" to review":"")+". Tap to open, press and hold to manage.");
   return tile;
  }

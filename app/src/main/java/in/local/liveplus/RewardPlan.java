@@ -24,9 +24,18 @@ public final class RewardPlan {
  public static final class Category {
   public final String name; public final int rateBps; public final long points,blockPaise;
   public final boolean capped,round;
+  /** This category's own ceiling per period, in paise or points; 0 for none. Separate from the
+   * plan's shared cap, because several Indian cards cap each tier on its own. */
+  public final long ceiling;
+  /** Merchant names that fall in this category by default, before the card's own mappings. */
+  public final List<String> merchants;
   public Category(String name,int rateBps,boolean capped,boolean round){this(name,rateBps,0,0,capped,round);}
   public Category(String name,int rateBps,long points,long blockPaise,boolean capped,boolean round){
+   this(name,rateBps,points,blockPaise,capped,round,0,Collections.<String>emptyList());
+  }
+  public Category(String name,int rateBps,long points,long blockPaise,boolean capped,boolean round,long ceiling,List<String> merchants){
    this.name=name;this.rateBps=rateBps;this.points=points;this.blockPaise=blockPaise;this.capped=capped;this.round=round;
+   this.ceiling=ceiling;this.merchants=Collections.unmodifiableList(new ArrayList<>(merchants));
   }
   public boolean pointsBased(){return blockPaise>0;}
   /** The label shown in pickers and summaries, e.g. "Groceries · 10%". */
@@ -36,7 +45,7 @@ public final class RewardPlan {
   }
   /** Groups categories that must be totalled together before their rate is applied, so that a
    * plan with four categories at one rate rounds exactly once, as upstream does. */
-  String bucket(){return rateBps+"/"+points+"/"+blockPaise+"/"+(capped?"c":"u")+"/"+(round?"r":"f");}
+  String bucket(){return rateBps+"/"+points+"/"+blockPaise+"/"+(capped?"c":"u")+"/"+(round?"r":"f")+"/"+ceiling;}
  }
 
  public final String id,name,unit,capBasis;
@@ -68,6 +77,10 @@ public final class RewardPlan {
    if(category.blockPaise<0||category.blockPaise>MAX_BLOCK)throw new IllegalArgumentException("Enter a realistic spend block.");
    if(category.pointsBased()&&category.rateBps!=0)throw new IllegalArgumentException("A category earns either a percentage or points, not both.");
    if(category.points>0&&category.blockPaise<=0)throw new IllegalArgumentException("Points categories need the spend block that earns them.");
+   if(category.ceiling<0||category.ceiling>MAX_CAP)throw new IllegalArgumentException("Enter a category ceiling from ₹0 up to ₹1,00,00,000.");
+   if(category.merchants.size()>40)throw new IllegalArgumentException("A category lists up to 40 merchants.");
+   for(String merchant:category.merchants)
+    if(merchant==null||merchant.trim().isEmpty()||merchant.length()>60)throw new IllegalArgumentException("Give every listed merchant a name of up to 60 characters.");
    anyCapped|=category.capped;
   }
   if(anyCapped&&CAP_NONE.equals(capBasis))throw new IllegalArgumentException("Categories share a cap, so set a cap amount.");
@@ -112,6 +125,28 @@ public final class RewardPlan {
   return true;
  }
 
+ /**
+  * The category this plan suggests for a merchant name, or 0 when it has nothing to say. The
+  * longest listed name wins, so "Amazon Pay" beats a bare "Amazon" in another category. A card's
+  * own saved mappings are checked first and always win.
+  */
+ public int suggest(String merchant){
+  String folded=fold(merchant);
+  if(folded.isEmpty())return 0;
+  int best=0,length=0;
+  for(int index=1;index<count();index++)
+   for(String name:category(index).merchants){
+    String token=fold(name);
+    if(token.isEmpty()||token.length()<=length||!(" "+folded+" ").contains(" "+token+" "))continue;
+    best=index;length=token.length();
+   }
+  return best;
+ }
+ /** Lower-cased with punctuation flattened, so "AMAZON PAY IN R" carries the words "amazon pay". */
+ static String fold(String value){
+  return value==null?"":value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+"," ").replaceAll("\\s+"," ").trim();
+ }
+
  public static String percent(int rateBps){
   if(rateBps%100==0)return (rateBps/100)+"%";
   String value=String.valueOf(rateBps/100.0);
@@ -139,7 +174,9 @@ public final class RewardPlan {
    if(category.pointsBased()){row.put("points",category.points);row.put("blockPaise",category.blockPaise);}
    else row.put("rateBps",(long)category.rateBps);
    row.put("capped",category.capped);
+   if(category.ceiling>0)row.put("ceilingPaise",category.ceiling);
    row.put("rounding",category.round?"round":"floor");
+   if(!category.merchants.isEmpty())row.put("merchants",new ArrayList<Object>(category.merchants));
    rows.add(row);
   }
   out.put("categories",rows);
@@ -158,12 +195,16 @@ public final class RewardPlan {
    long points=Json.number(row,"points",0),block=Json.number(row,"blockPaise",0);
    long rate=Json.number(row,"rateBps",-1);
    if(rate<0)rate=points>0?0:0;
+   List<String> merchants=new ArrayList<>();
+   for(Object merchant:Json.children(row,"merchants"))if(merchant instanceof String&&!((String)merchant).trim().isEmpty())merchants.add(((String)merchant).trim());
    categories.add(new Category(
     Json.text(row,"name",""),
     (int)Math.max(0,Math.min(MAX_RATE_BPS,rate)),
     points,block,
     Json.flag(row,"capped",false),
-    !"floor".equals(Json.text(row,"rounding","round"))));
+    !"floor".equals(Json.text(row,"rounding","round")),
+    Json.number(row,"ceilingPaise",0),
+    merchants));
   }
   Map<String,Object> cap=Json.child(source,"cap");
   long amount=Json.number(cap,"amountPaise",0);
@@ -217,8 +258,55 @@ public final class RewardPlan {
   categories.add(new Category("Excluded",0,0,0,false,false));
   return new RewardPlan("reward-points","Reward points",UNIT_POINTS,CAP_NONE,0,25,categories);
  }
+ private static Category percent(String name,int rateBps,long ceiling,String... merchants){
+  return new Category(name,rateBps,0,0,false,true,ceiling,Arrays.asList(merchants));
+ }
+ private static Category points(String name,long points,long blockPaise,String... merchants){
+  return new Category(name,0,points,blockPaise,false,false,0,Arrays.asList(merchants));
+ }
+ private static final String EXCLUDED="Excluded";
+ /**
+  * Plans for the cards this fork's author carries. Rates were read from the issuers' own pages on
+  * 21 November 2026 and the terms move often, so a card's Settings screen is the authority: check
+  * the plan against your own statement and edit it there. docs/MULTI-CARD.md records what is
+  * solid and what is not.
+  */
+ public static RewardPlan amazonPayIcici(){
+  return new RewardPlan("icici-amazon-pay","Amazon Pay ICICI",UNIT_CASHBACK,CAP_NONE,0,0,Arrays.asList(
+   percent("Amazon (Prime)",500,0,"Amazon","Amazon Pay","Amazon Pay IN","Amazon In"),
+   percent("Amazon Pay partners",200,0),
+   percent("Other eligible",100,0),
+   percent(EXCLUDED,0,0,"petrol","fuel","rent payment","Indian Oil","IndianOil","BPCL","HPCL")));
+ }
+ public static RewardPlan swiggyHdfc(){
+  return new RewardPlan("hdfc-swiggy","Swiggy HDFC",UNIT_CASHBACK,CAP_NONE,0,0,Arrays.asList(
+   percent("Swiggy app",1000,150000,"Swiggy","Instamart","Swiggy Instamart","Dineout","Swiggy Dineout","Swiggy Genie"),
+   percent("Online spends",500,150000),
+   percent("Other spends",100,0),
+   percent(EXCLUDED,0,0,"petrol","fuel","rent payment")));
+ }
+ public static RewardPlan phonePeHdfcUltimo(){
+  return new RewardPlan("hdfc-phonepe-ultimo","PhonePe HDFC Ultimo",UNIT_CASHBACK,CAP_NONE,0,0,Arrays.asList(
+   percent("PhonePe bills and recharges",1000,100000,"PhonePe"),
+   percent("Select online brands",500,50000),
+   percent("UPI scan and pay",100,50000),
+   percent("Other or excluded",0,0)));
+ }
+ public static RewardPlan axisNeo(){
+  return new RewardPlan("axis-neo","Axis NEO",UNIT_POINTS,CAP_NONE,0,20,Arrays.asList(
+   points("Everyday spends",1,20000),
+   points("Excluded: fuel, rent, utilities",0,0,"petrol","fuel","rent payment","insurance")));
+ }
+ public static RewardPlan idfcFirstMillennia(){
+  return new RewardPlan("idfc-first-millennia","IDFC FIRST Millennia",UNIT_POINTS,CAP_NONE,0,25,Arrays.asList(
+   points("Accelerated: over ₹20,000 a month",10,20000),
+   points("Everyday spends",3,20000),
+   points("FASTag and railways",1,20000,"FASTag","IRCTC"),
+   points(EXCLUDED,0,0,"petrol","fuel","rent payment")));
+ }
  public static List<RewardPlan> presets(){
-  return Arrays.asList(hsbcLivePlus(),acceleratedCashback(),flatCashback(),rewardPoints());
+  return Arrays.asList(hsbcLivePlus(),amazonPayIcici(),swiggyHdfc(),phonePeHdfcUltimo(),axisNeo(),
+   idfcFirstMillennia(),acceleratedCashback(),flatCashback(),rewardPoints());
  }
  public static RewardPlan preset(String id){
   for(RewardPlan plan:presets())if(plan.id.equals(id))return plan;

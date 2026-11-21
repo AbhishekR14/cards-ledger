@@ -13,7 +13,8 @@ public final class CaptureStore {
   try(Store store=Cards.store(context,cardId)){
    SharedPreferences p=Cards.prefs(context,cardId);
    Engine.Tx x=new Engine.Tx();x.amount=parsed.amount;x.merchant=parsed.merchant;x.date=parsed.date;x.refund=parsed.refund;x.received=received;x.source=source;x.event=event;
-   store.categorize(x,p.getBoolean("myntra",false),Cards.usesBuiltInCategories(Cards.plan(context,cardId)));x.duplicate=possibleDuplicate;if(x.duplicate)x.confirmed=false;
+   RewardPlan plan=Cards.plan(context,cardId);
+   store.categorize(x,p.getBoolean("myntra",false),Cards.usesBuiltInCategories(plan),plan);x.duplicate=possibleDuplicate;if(x.duplicate)x.confirmed=false;
    for(Engine.Tx existing:store.all()){
     if(existing.event.equals(x.event))return 2;
     if(!existing.refund&&!x.refund&&existing.active&&existing.amount==x.amount&&Math.abs(existing.received-x.received)<=120000&&Engine.key(existing.merchant).equals(Engine.key(x.merchant))){x.duplicate=true;x.confirmed=false;}

@@ -86,11 +86,42 @@ preset reads:
 | `cap.amountPaise` | The cap, in paise (or in points for a points plan) |
 | `categories[].rateBps` | Basis points: `1000` is 10%, `150` is 1.5% |
 | `categories[].points` / `blockPaise` | Points earned per block of spend, instead of a percentage |
-| `categories[].capped` | Whether the category counts towards the cap |
+| `categories[].capped` | Whether the category counts towards the plan's shared cap |
+| `categories[].ceilingPaise` | A ceiling for this tier alone, when the card caps each tier separately |
+| `categories[].merchants` | Merchant names that fall in this category by default |
 | `categories[].rounding` | `round` to the nearest, or `floor` down |
+
+A card can cap each tier on its own (`ceilingPaise`) as well as share one cap across tiers
+(`cap`), because Indian cards do both. The Swiggy HDFC preset uses per-tier ceilings; HSBC Live+
+uses a shared cap.
+
+`merchants` is what lets a preset categorise on its own: a purchase from a listed merchant lands
+in that category without any setup. The longest listed name wins, so "Amazon Pay" in one category
+beats a bare "Amazon" in another. A mapping you save on the card always wins over the plan's list,
+and upstream's built-in catalogue applies only to a plan whose categories are still HSBC Live+'s.
 
 Category order is the category numbering, and a transaction stores its number. Append new
 categories rather than reordering them.
+
+## Card presets
+
+Rates below were read from the issuers' own pages on **21 November 2026**. Indian card terms move
+constantly and several of these were mid-change, so treat a preset as a starting point: check it
+against your statement and edit it in the card's **Settings → Reward plan**.
+
+| Preset | What it assumes | How solid |
+| --- | --- | --- |
+| **HSBC Live+** | 10% on dining, groceries, shopping, utilities sharing a ₹1,200 monthly cashback cap; 1.5% base | Upstream's own rules, parity-tested against them |
+| **Amazon Pay ICICI** | 5% on Amazon (Prime), 2% at Amazon Pay partners, 1% elsewhere, no cap | Structure is well documented. **Change 5% to 3% if you are not a Prime member.** ICICI's 2026 fee changes add charges on wallet loads, gaming and large transport spends |
+| **Swiggy HDFC** | 10% on Swiggy app capped at ₹1,500 a month, 5% on online spends capped at ₹1,500, 1% elsewhere | The 10% tier and its ₹1,500 cap are confirmed; the 5% tier's cap is not. The card now comes as **BLCK** (10% on Swiggy) and **Ornge** (5%) — this preset is BLCK |
+| **PhonePe HDFC Ultimo** | 10% on PhonePe bills and recharges capped at ₹1,000, 5% on select online brands capped at ₹500, 1% on UPI scan and pay capped at ₹500 | Rate structure comes from PhonePe's own materials; **the caps are third-party figures and unverified** |
+| **Axis NEO** | 1 point per ₹200, a point worth ₹0.20; fuel, rent and utilities earn nothing | Correct as a reward model, but this card's real value is coupon offers on Zomato, Blinkit and bill payments, which a ledger cannot track |
+| **IDFC FIRST Millennia** | 3 points per ₹200 normally, 10 per ₹200 above ₹20,000 of monthly spend and on your birthday, 1 per ₹200 on FASTag and railways, a point worth ₹0.25 | Rates confirmed in the bank's own January 2026 notice. **The ₹20,000 threshold is not applied automatically** — put those purchases in the accelerated category yourself |
+| Accelerated cashback, Flat cashback, Reward points | Blank starting shapes | Yours to fill in |
+
+Two things no plan can work out on its own: a threshold that depends on the month's running total
+(IDFC's ₹20,000), and a discount applied at checkout rather than paid as a reward (Axis NEO's
+coupons). Categorise those by hand.
 
 ## How an alert finds its card
 
@@ -109,6 +140,14 @@ upstream's parser, unchanged, so two cards at the same bank with different suffi
 by the digits, and two cards sharing a suffix at different banks are separated by the bank.
 
 Sender ids are an optional extra filter for a bank whose name is too common in other messages.
+
+### Merchant names other banks write differently
+
+Upstream reads the merchant from `at ...`, `towards ...` or `merchant: ...`, which is how HSBC
+writes an alert. ICICI writes `on 21-Nov-26 on AMAZON PAY IN R`, and Axis puts the merchant
+between the transaction time and the available limit. This fork reads those two shapes as a
+fallback, and only when upstream found no merchant, so upstream's own reading is never overridden.
+An alert that still yields nothing is recorded as "Unknown merchant" and waits in review.
 
 Merchant suggestions from the built-in catalogue apply to the **HSBC Live+ plan only**, because
 that catalogue returns that plan's category numbers. On other cards, categories come from the

@@ -70,6 +70,35 @@ public class RewardPlanTest {
   for(RewardPlan preset:RewardPlan.presets())
    check(RewardPlan.fromJson(preset.toJson()).toJson().equals(preset.toJson()),"preset "+preset.id+" round trips");
 
+  // Per-category ceilings and merchant lists.
+  RewardPlan swiggy=RewardPlan.swiggyHdfc();
+  check(swiggy.category(1).ceiling==150000,"a tier can carry its own ceiling");
+  check(RewardPlan.fromJson(swiggy.toJson()).category(1).ceiling==150000,"a ceiling survives a round trip");
+  check(RewardPlan.fromJson(swiggy.toJson()).category(1).merchants.contains("Instamart"),"merchant lists survive a round trip");
+  check(swiggy.suggest("SWIGGY INSTAMART")==1,"a listed merchant picks its category");
+  check(swiggy.suggest("Swiggy")==1,"the merchant match ignores case");
+  check(swiggy.suggest("BLINKIT")==0,"an unlisted merchant stays unknown");
+  check(swiggy.suggest("")==0,"an empty merchant name suggests nothing");
+
+  RewardPlan amazon=RewardPlan.amazonPayIcici();
+  check(amazon.suggest("AMAZON PAY IN R")==1,"the ICICI card recognises its own Amazon merchant string");
+  check(amazon.suggest("AMAZONIA FOODS")==0,"a longer word is not mistaken for the merchant");
+  check(amazon.suggest("INDIAN OIL PETROL PUMP")==4,"excluded merchants are recognised too");
+  List<RewardPlan.Category> overlap=new ArrayList<>();
+  overlap.add(new RewardPlan.Category("Broad",100,0,0,false,true,0,java.util.Arrays.asList("Amazon")));
+  overlap.add(new RewardPlan.Category("Specific",500,0,0,false,true,0,java.util.Arrays.asList("Amazon Pay")));
+  check(new RewardPlan("c","C",RewardPlan.UNIT_CASHBACK,RewardPlan.CAP_NONE,0,0,overlap).suggest("AMAZON PAY IN R")==2,
+   "the longest listed merchant wins");
+
+  // Every preset must survive validation and a round trip.
+  check(RewardPlan.presets().size()==9,"all nine presets are offered");
+  for(RewardPlan preset:RewardPlan.presets()){
+   check(RewardPlan.fromJson(preset.toJson()).toJson().equals(preset.toJson()),"preset "+preset.id+" round trips with its new fields");
+   check(preset.labels().length==preset.categories.size()+1,"preset "+preset.id+" labels every category");
+  }
+  check(RewardPlan.idfcFirstMillennia().pointsUnit()&&RewardPlan.idfcFirstMillennia().pointValuePaise==25,"the IDFC plan values a point at 25 paise");
+  check(RewardPlan.axisNeo().category(1).blockPaise==20000,"the Axis plan earns per ₹200 of spend");
+
   rejects("{\"categories\":[]}","a plan with no categories");
   rejects("{\"categories\":[{\"name\":\"\",\"rateBps\":100}]}","a category with no name");
   rejects("{\"categories\":[{\"name\":\"Needs category\",\"rateBps\":100}]}","the reserved sentinel name");
