@@ -75,13 +75,15 @@ public class MainActivity extends Activity {
  LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
  void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
- void add(LinearLayout l,View v){l.addView(v,new LinearLayout.LayoutParams(-1,-2));}
+ // MULTI-CARD: stacked buttons get room between them; pill shapes touching read as one block.
+ void add(LinearLayout l,View v){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);if(v instanceof Button){lp.topMargin=dp(5);lp.bottomMargin=dp(5);}l.addView(v,lp);}
  LinearLayout card(LinearLayout parent,int color){LinearLayout l=column();l.setPadding(dp(20),dp(20),dp(20),dp(20));l.setBackground(bg(color,26));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(14);parent.addView(l,lp);return l;}
  Button button(String s,View.OnClickListener click){
   Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextColor(BRAND_INK);b.setTextSize(14);b.setMinHeight(dp(48));
   int ripple=Color.argb(56,Color.red(BRAND_INK),Color.green(BRAND_INK),Color.blue(BRAND_INK));
   b.setBackgroundTintList(null);
   b.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(ripple),bg(MINT,24),bg(Color.WHITE,24)));
+  b.setPadding(dp(20),dp(10),dp(20),dp(10));
   b.setStateListAnimator(null);b.setElevation(0);b.setOnClickListener(click);return b;
  }
  void styleTab(Button button,boolean selected,boolean attention){
@@ -128,7 +130,7 @@ public class MainActivity extends Activity {
  void draw(){
   flushSettings();rememberScroll();
   root=column();root.setBackgroundColor(BG);root.setPadding(dp(20),dp(12),dp(20),0);setContentView(root);
-  root.setOnApplyWindowInsetsListener((v,i)->{root.setPadding(dp(20),Math.max(dp(12),i.getSystemWindowInsetTop()),dp(20),i.getSystemWindowInsetBottom());return i;});
+  root.setOnApplyWindowInsetsListener((v,i)->{root.setPadding(dp(20),Math.max(dp(12),i.getSystemWindowInsetTop())+dp(14),dp(20),i.getSystemWindowInsetBottom());return i;});
   // MULTI-CARD: the card's own name heads the screen, with a way back to the grid.
   LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);
   Button back=button("‹",v->finish());back.setContentDescription("Back to all cards");top.addView(back,new LinearLayout.LayoutParams(dp(46),dp(46)));
@@ -164,16 +166,18 @@ public class MainActivity extends Activity {
   RewardPlan.Category single=plan.singleCappedRate();
   if(t.remainingSpend>=0&&single!=null)add(hero,text(cash(t.remainingSpend)+" eligible spend left at "+rate(single),17,ON_TILE,true));
   else if(t.remainingReward>=0)add(hero,text(reward(t.remainingReward)+" of the cap left this period",17,ON_TILE,true));
-  else add(hero,text(cash(t.totalSpend)+" spent this period",17,ON_TILE,true));
+  else add(hero,text(cash(t.netSpend)+" spent this period",17,ON_TILE,true));
   LinearLayout info=card(body,SURFACE);add(info,text("THIS PERIOD",11,MUTED,true));gap(info,10);
   for(Rewards.Line line:t.lines){
    if(line.paying)cashbackMetric(info,line.label,line.spend,line.reward);
    else metric(info,line.label,cash(line.spend));
   }
   if(t.unknownSpend>0)metric(info,"Unclassified / possible duplicate",cash(t.unknownSpend));
-  if(t.credits>0)metric(info,"Paid to the card",cash(t.credits));
+  if(t.reversed>0)metric(info,"Reversed by credits","−"+cash(t.reversed));
+  if(t.paid>0)metric(info,"Paid to the card",cash(t.paid));
   View divider=new View(this);divider.setBackgroundColor(TAB_BORDER);info.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));gap(info,4);
-  cashbackMetric(info,"Total spend",t.totalSpend,t.reward,plan.pointsUnit()?"Total estimated points":"Total estimated cashback");
+  if(t.reversed>0)metric(info,"Spent before credits",cash(t.totalSpend));
+  cashbackMetric(info,t.reversed>0?"Net spend":"Total spend",t.netSpend,t.reward,plan.pointsUnit()?"Total estimated points":"Total estimated cashback");
   if(plan.pointsUnit()&&plan.pointValuePaise>0)metric(info,"Estimated value",cash(t.valuePaise(plan)));
   if(t.review>0){LinearLayout review=card(body,NOTICE);add(review,text(t.review+" item"+(t.review==1?"":"s")+" to review",19,INK,true));gap(review,5);add(review,text("Suggested categories count toward the estimate. Unknown categories, refunds and possible duplicates need your review.",13,INK,false));add(review,button("Review activity",v->{tab="Activity";reviewOnly=true;draw();}));}
   LinearLayout capture=card(body,SURFACE);boolean live=g.getBoolean("capture",false)&&access()&&card.capture;
@@ -206,10 +210,12 @@ public class MainActivity extends Activity {
  }
  void activityActions(){
   LinearLayout actions=new LinearLayout(this);
-  actions.addView(button("Add purchase",v->edit(null)),new LinearLayout.LayoutParams(0,-2,1));
-  actions.addView(button("Paste alert",v->paste()),new LinearLayout.LayoutParams(0,-2,1));
+  LinearLayout.LayoutParams left=new LinearLayout.LayoutParams(0,-2,1);left.setMarginEnd(dp(5));left.bottomMargin=dp(5);
+  LinearLayout.LayoutParams right=new LinearLayout.LayoutParams(0,-2,1);right.setMarginStart(dp(5));right.bottomMargin=dp(5);
+  actions.addView(button("Add purchase",v->edit(null)),left);
+  actions.addView(button("Paste alert",v->paste()),right);
   add(root,actions);
-  int count=Engine.reviewCount(Rows.purchases(store.all()),start(),end());
+  int count=Rows.reviewCount(store.all(),start(),end());
   Button review=button((reviewOnly?"✓ ":"")+"Needs review"+(count>0?" ("+count+")":""),v->{reviewOnly=!reviewOnly;draw();});
   styleTab(review,reviewOnly,count>0);
   review.setContentDescription("Needs review, "+count+" item"+(count==1?"":"s")+" in this period. "+(reviewOnly?"Filter on. Tap to show all transactions.":"Tap to show only items needing review."));
@@ -219,9 +225,9 @@ public class MainActivity extends Activity {
   int count=0;for(Engine.Tx x:store.all()){
    LocalDate d=LocalDate.parse(x.date);if(!x.active||d.isBefore(start())||d.isAfter(end()))continue;
    boolean credit=Rows.credit(x);
-   boolean needs=!credit&&Engine.needsReview(x);if(reviewOnly&&!needs)continue;count++;
+   boolean needs=Rows.needsReview(x);if(reviewOnly&&!needs)continue;count++;
    LinearLayout c=card(body,SURFACE);LinearLayout r=new LinearLayout(this);r.addView(text(x.merchant,17,INK,true),new LinearLayout.LayoutParams(0,-2,1));r.addView(text((x.refund||credit?"−":"")+cash(x.amount),17,credit?SUCCESS:INK,true));add(c,r);gap(c,6);
-   String status=credit?"Paid to the card · not spending, earns nothing":x.refund?(x.linked.isEmpty()?"Refund · link to original purchase":"Refund linked to purchase #"+x.linked):(x.duplicate?"Possible duplicate · excluded from estimate":label(x.category)+(x.confirmed?" · checked":" · suggested"));add(c,text(status,13,needs?CORAL:MUTED,false));add(c,text(x.date+"  /  "+sourceLabel(x.source),11,MUTED,false));c.setOnClickListener(v->{if(x.refund)refund(x);else edit(x);});c.setContentDescription(x.merchant+", "+cash(x.amount)+", "+status+". Tap to edit.");
+   String status=credit?(x.category>0?"Reverses "+label(x.category)+(x.confirmed?" · checked":" · suggested")+" · reward taken back":"Paid to the card · no reward effect"):x.refund?(x.linked.isEmpty()?"Refund · link to original purchase":"Refund linked to purchase #"+x.linked):(x.duplicate?"Possible duplicate · excluded from estimate":label(x.category)+(x.confirmed?" · checked":" · suggested"));add(c,text(status,13,needs?CORAL:MUTED,false));add(c,text(x.date+"  /  "+sourceLabel(x.source),11,MUTED,false));c.setOnClickListener(v->{if(x.refund)refund(x);else edit(x);});c.setContentDescription(x.merchant+", "+cash(x.amount)+", "+status+". Tap to edit.");
   }
   if(count==0){LinearLayout c=card(body,SURFACE);add(c,text(reviewOnly?"All caught up":"A fresh start",24,INK,true));gap(c,8);add(c,text(reviewOnly?"No items need review in this period.":"There are no transactions in this period. You can add a purchase or paste a transaction alert.",14,MUTED,false));}
 
@@ -253,15 +259,28 @@ public class MainActivity extends Activity {
   EditText merchant=input(l,"Merchant",fresh?"":x.merchant,1);EditText amount=input(l,"Amount in ₹",fresh?"":BigDecimalValue(x.amount),8194);LocalDate[] selectedDate={fresh?LocalDate.now(ZoneId.of("Asia/Kolkata")):LocalDate.parse(x.date)};dateInput(l,selectedDate);
   add(l,text("Reward category",13,MUTED,true));Spinner cat=new Spinner(this);cat.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,plan.labels()));cat.setSelection(Math.max(0,Math.min(x.category,plan.count()-1)));add(l,cat);gap(l,8);add(l,text("Choose based on the bank’s merchant category, not the item purchased.",12,MUTED,false));
   CheckBox learn=new CheckBox(this);learn.setText("Remember this merchant’s category");learn.setChecked(x.category!=0&&store.rule(x.merchant)==x.category);add(l,learn);
-  cat.setEnabled(!x.credit);learn.setEnabled(!x.credit);
-  paid.setOnCheckedChangeListener((view,checked)->{cat.setEnabled(!checked);learn.setEnabled(!checked);if(checked)learn.setChecked(false);});
+  // MULTI-CARD: a credit can name the category it reverses, which takes that category's reward
+  // back. Left on the first entry, it is a bill payment and changes nothing.
+  String[] creditLabels=plan.labels();creditLabels[0]="Not a reversal · a bill payment";
+  TextView creditHint=text("Pick the category this credit reverses to take its "+(plan.pointsUnit()?"points":"cashback")+" back. A bill payment changes nothing.",12,MUTED,false);
+  creditHint.setVisibility(x.credit?View.VISIBLE:View.GONE);add(l,creditHint);
+  if(x.credit)cat.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,creditLabels));
+  cat.setSelection(Math.max(0,Math.min(x.category,plan.count()-1)));
+  learn.setEnabled(!x.credit);
+  paid.setOnCheckedChangeListener((view,checked)->{
+   int chosen=cat.getSelectedItemPosition();
+   cat.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,checked?creditLabels:plan.labels()));
+   cat.setSelection(Math.max(0,chosen));
+   creditHint.setVisibility(checked?View.VISIBLE:View.GONE);
+   learn.setEnabled(!checked);if(checked)learn.setChecked(false);
+  });
   // An untouched unchecked box must not remove a different saved category for an older purchase.
   boolean[] forgetRule={false};
   learn.setOnCheckedChangeListener((view,checked)->forgetRule[0]=!checked);
   add(l,text("Applies to future alerts from this merchant. Save to apply changes.",12,MUTED,false));
   if(x.duplicate)add(l,text("Possible duplicate: saving confirms this is a separate purchase. Delete it if another alert already represents it.",13,CORAL,false));
   AlertDialog dlg=new AlertDialog.Builder(this).setTitle(fresh?"Add purchase or payment":"Edit entry").setView(scrolled(l)).setPositiveButton("Save",null).setNegativeButton("Cancel",null).setNeutralButton(fresh?"":"Delete",null).create();dlg.setOnShowListener(v->{
-   dlg.getButton(-1).setOnClickListener(w->{try{long n=Engine.money(amount.getText().toString());LocalDate d=selectedDate[0];String m=merchant.getText().toString().trim();if(n<=0||n>1000000000L||m.isEmpty()||m.length()>90)throw new Exception();if(learn.isChecked()&&cat.getSelectedItemPosition()==0){toast("Choose a category before remembering this merchant.");return;}long linked=0;for(Engine.Tx r:store.all())if(r.active&&r.refund&&r.linked.equals(""+x.id))linked+=r.amount;if(n<linked){toast("Amount is smaller than linked refunds. Unlink the refund first.");return;}x.amount=n;x.merchant=m;x.date=d.toString();x.credit=paid.isChecked();x.category=x.credit?0:cat.getSelectedItemPosition();x.confirmed=x.credit||x.category!=0;x.duplicate=false;if(fresh)x.received=System.currentTimeMillis();store.save(x);if(learn.isChecked()&&!x.credit)store.rule(m,x.category);else if(forgetRule[0])store.forgetRule(m);dlg.dismiss();draw();}catch(Exception e){toast("Enter a merchant and a positive amount, and select a date.");}});
+   dlg.getButton(-1).setOnClickListener(w->{try{long n=Engine.money(amount.getText().toString());LocalDate d=selectedDate[0];String m=merchant.getText().toString().trim();if(n<=0||n>1000000000L||m.isEmpty()||m.length()>90)throw new Exception();if(learn.isChecked()&&cat.getSelectedItemPosition()==0){toast("Choose a category before remembering this merchant.");return;}long linked=0;for(Engine.Tx r:store.all())if(r.active&&r.refund&&r.linked.equals(""+x.id))linked+=r.amount;if(n<linked){toast("Amount is smaller than linked refunds. Unlink the refund first.");return;}x.amount=n;x.merchant=m;x.date=d.toString();x.credit=paid.isChecked();x.category=cat.getSelectedItemPosition();x.confirmed=x.credit||x.category!=0;x.duplicate=false;if(fresh)x.received=System.currentTimeMillis();store.save(x);if(learn.isChecked()&&!x.credit)store.rule(m,x.category);else if(forgetRule[0])store.forgetRule(m);dlg.dismiss();draw();}catch(Exception e){toast("Enter a merchant and a positive amount, and select a date.");}});
    if(!fresh)dlg.getButton(-3).setOnClickListener(w->new AlertDialog.Builder(this).setMessage("Delete this purchase? Linked refund alerts will return to review.").setNegativeButton("Cancel",null).setPositiveButton("Delete",(a,b)->{x.active=false;store.save(x);for(Engine.Tx r:store.all())if(r.refund&&r.linked.equals(""+x.id)){r.linked="";store.save(r);}dlg.dismiss();draw();}).show());else dlg.getButton(-3).setVisibility(View.GONE);
   });dlg.show();
  }
@@ -277,7 +296,7 @@ public class MainActivity extends Activity {
  // the automatic router uses.
  void paste(){LinearLayout l=dialogBody();add(l,text("Paste one "+card.issuer+" purchase or refund alert. OTPs are rejected. Alert text is parsed on this phone and is not saved.",14,MUTED,false));EditText e=new EditText(this);e.setHint(card.issuer+" transaction alert");e.setMinLines(4);e.setGravity(Gravity.TOP);add(l,e);AlertDialog dlg=new AlertDialog.Builder(this).setTitle("Import one alert").setView(scrolled(l)).setPositiveButton("Preview",null).setNegativeButton("Cancel",null).create();dlg.setOnShowListener(v->dlg.getButton(-1).setOnClickListener(w->{String pasted=e.getText().toString();boolean[] paidIn={false};Engine.Parsed a=Alerts.parse("",pasted,p.getString("last4",""),System.currentTimeMillis(),card.issuer);
    if(a==null){Credits.Posted posted=Credits.parse("",pasted,p.getString("last4",""),System.currentTimeMillis());if(posted!=null){a=Alerts.asTransaction(posted);paidIn[0]=true;}}
-   if(a==null){toast("Could not match a transaction. Check your card’s last four digits, or add it manually.");return;}Rows.Row x=new Rows.Row();x.credit=paidIn[0];x.amount=a.amount;x.merchant=a.merchant;x.date=a.date;x.refund=a.refund;x.received=System.currentTimeMillis();x.source="Pasted";if(x.credit)x.confirmed=true;else store.categorize(x,p.getBoolean("myntra",false),Cards.usesBuiltInCategories(plan),plan);new AlertDialog.Builder(this).setTitle("Confirm import").setMessage(x.merchant+"\n"+cash(x.amount)+"\n"+x.date+"\n"+(x.credit?"Paid to the card":x.refund?"Refund · needs linking":label(x.category))+"\n\nCheck for an existing purchase before importing.").setNegativeButton("Cancel",null).setPositiveButton("Add",(q,z)->{store.save(x);dlg.dismiss();draw();}).show();}));dlg.show();}
+   if(a==null){toast("Could not match a transaction. Check your card’s last four digits, or add it manually.");return;}Rows.Row x=new Rows.Row();x.credit=paidIn[0];x.amount=a.amount;x.merchant=a.merchant;x.date=a.date;x.refund=a.refund;x.received=System.currentTimeMillis();x.source="Pasted";if(x.credit){x.category=Rows.matchCategory(store.all(),x.amount,x.date);x.confirmed=x.category==0;}else store.categorize(x,p.getBoolean("myntra",false),Cards.usesBuiltInCategories(plan),plan);new AlertDialog.Builder(this).setTitle("Confirm import").setMessage(x.merchant+"\n"+cash(x.amount)+"\n"+x.date+"\n"+(x.credit?(x.category>0?"Reverses "+label(x.category)+" · matched to an earlier purchase of the same amount":"Paid to the card · no reward effect"):x.refund?"Refund · needs linking":label(x.category))+"\n\nCheck for an existing purchase before importing.").setNegativeButton("Cancel",null).setPositiveButton("Add",(q,z)->{store.save(x);dlg.dismiss();draw();}).show();}));dlg.show();}
  void merchantRules(){
   LinearLayout l=dialogBody();
   add(l,text("Your remembered and added merchant mappings. Tap a mapping to edit or delete it. These apply to new alerts and pasted purchases.",13,MUTED,false));gap(l,10);
@@ -508,9 +527,9 @@ public class MainActivity extends Activity {
   }
   if(req==41){JSONObject o=new JSONObject();o.put("format","liveplus-ledger-v1");o.put("last4",p.getString("last4",""));o.put("day",day());o.put("cap",cap());o.put("periodSet",p.getBoolean("periodSet",false));o.put("myntra",p.getBoolean("myntra",false));o.put("transactions",store.exportRows());try(OutputStream s=getContentResolver().openOutputStream(data.getData())){s.write(o.toString(2).getBytes(StandardCharsets.UTF_8));}toast("Backup exported");}
   else if(req==42){if(!store.all().isEmpty())throw new Exception("Ledger must be empty");ByteArrayOutputStream buffer=new ByteArrayOutputStream();try(InputStream in=getContentResolver().openInputStream(data.getData())){byte[] chunk=new byte[8192];int n;while((n=in.read(chunk))!=-1){buffer.write(chunk,0,n);if(buffer.size()>10_000_000)throw new Exception("File too large");}}JSONObject o=new JSONObject(buffer.toString("UTF-8"));if(!o.getString("format").equals("liveplus-ledger-v1"))throw new Exception("Wrong format");JSONArray a=o.getJSONArray("transactions");if(a.length()>20000)throw new Exception("Too many rows");String four=o.getString("last4");int close=o.getInt("day");long max=o.getLong("cap");if(!four.matches("[0-9]{4}")||close<0||close>31||max<=0||max>10000000L)throw new Exception("Invalid settings");
-   List<Engine.Tx> rows=new ArrayList<>();Set<Long> ids=new HashSet<>();Set<String> events=new HashSet<>();for(int i=0;i<a.length();i++){JSONObject v=a.getJSONObject(i);Engine.Tx x=new Engine.Tx();x.id=v.getLong("id");x.amount=v.getLong("amountPaise");x.merchant=v.getString("merchant");x.date=LocalDate.parse(v.getString("date")).toString();x.category=v.getInt("category");x.confirmed=v.getBoolean("confirmed");x.refund=v.getBoolean("refund");x.duplicate=v.getBoolean("duplicate");x.active=v.getBoolean("active");x.received=v.getLong("received");x.source=v.getString("source");x.event=v.optString("event","");x.linked=v.optString("linked","");if(x.id<=0||!ids.add(x.id)||x.amount<=0||x.amount>1000000000L||x.category<0||x.category>=Engine.CATEGORIES.length||x.merchant.length()>90||x.source.length()>100||(!x.event.isEmpty()&&!events.add(x.event)))throw new Exception("Invalid transaction");rows.add(x);}
+   List<Engine.Tx> rows=new ArrayList<>();Set<Long> ids=new HashSet<>();Set<String> events=new HashSet<>();for(int i=0;i<a.length();i++){JSONObject v=a.getJSONObject(i);Rows.Row x=new Rows.Row();x.credit=v.optBoolean("credit",false);x.id=v.getLong("id");x.amount=v.getLong("amountPaise");x.merchant=v.getString("merchant");x.date=LocalDate.parse(v.getString("date")).toString();x.category=v.getInt("category");x.confirmed=v.getBoolean("confirmed");x.refund=v.getBoolean("refund");x.duplicate=v.getBoolean("duplicate");x.active=v.getBoolean("active");x.received=v.getLong("received");x.source=v.getString("source");x.event=v.optString("event","");x.linked=v.optString("linked","");if(x.id<=0||!ids.add(x.id)||x.amount<=0||x.amount>1000000000L||x.category<0||x.category>RewardPlan.MAX_CATEGORIES||x.merchant.length()>90||x.source.length()>100||(!x.event.isEmpty()&&!events.add(x.event)))throw new Exception("Invalid transaction");rows.add(x);}
    for(Engine.Tx x:rows)if(!x.linked.isEmpty()){Engine.Tx original=null;for(Engine.Tx q:rows)if(x.linked.equals(""+q.id)&&q.active&&!q.refund)original=q;if(!x.refund||original==null)throw new Exception("Invalid refund link");long refunds=0;for(Engine.Tx r:rows)if(r.active&&r.refund&&r.linked.equals(x.linked))refunds+=r.amount;if(refunds>original.amount)throw new Exception("Refund exceeds purchase");}
-   android.database.sqlite.SQLiteDatabase db=store.getWritableDatabase();db.beginTransaction();try{for(Engine.Tx x:rows){ContentValues values=new ContentValues();values.put("id",x.id);values.put("amount",x.amount);values.put("merchant",x.merchant);values.put("date",x.date);values.put("category",x.category);values.put("confirmed",x.confirmed?1:0);values.put("refund",x.refund?1:0);values.put("duplicate",x.duplicate?1:0);values.put("active",x.active?1:0);values.put("received",x.received);values.put("source",x.source);values.put("linked",x.linked);if(!x.event.isEmpty())values.put("event",x.event);db.insertOrThrow("tx",null,values);}db.setTransactionSuccessful();}finally{db.endTransaction();}
+   android.database.sqlite.SQLiteDatabase db=store.getWritableDatabase();db.beginTransaction();try{for(Engine.Tx x:rows){ContentValues values=new ContentValues();values.put("id",x.id);values.put("amount",x.amount);values.put("merchant",x.merchant);values.put("date",x.date);values.put("category",x.category);values.put("confirmed",x.confirmed?1:0);values.put("refund",x.refund?1:0);values.put("duplicate",x.duplicate?1:0);values.put("active",x.active?1:0);values.put("received",x.received);values.put("source",x.source);values.put("linked",x.linked);values.put("credit",Rows.credit(x)?1:0);if(!x.event.isEmpty())values.put("event",x.event);db.insertOrThrow("tx",null,values);}db.setTransactionSuccessful();}finally{db.endTransaction();}
    p.edit().putString("last4",four).putInt("day",close).putLong("cap",max).putBoolean("periodSet",o.optBoolean("periodSet",true)).putBoolean("myntra",o.optBoolean("myntra",false)).putBoolean("capture",false).apply();toast("Backup restored. Re-enable capture in Settings.");draw();
   }
  }catch(Exception e){toast("Could not complete operation: "+e.getMessage());}}

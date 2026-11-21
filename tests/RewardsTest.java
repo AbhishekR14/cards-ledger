@@ -1,6 +1,7 @@
 import in.local.liveplus.Engine;
 import in.local.liveplus.RewardPlan;
 import in.local.liveplus.Rewards;
+import in.local.liveplus.Rows;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -34,6 +35,14 @@ public class RewardsTest {
   check(expected.review==actual.review,name+": review count");
  }
 
+ static Rows.Row credit(long id,long amount,int category,boolean confirmed,String date){
+  Rows.Row row=new Rows.Row();row.id=id;row.amount=amount;row.category=category;row.confirmed=confirmed;
+  row.credit=true;row.merchant="Credited to card";row.date=date;return row;
+ }
+ static Rows.Row purchaseOn(long id,long amount,int category,String date){
+  Rows.Row row=new Rows.Row();row.id=id;row.amount=amount;row.category=category;row.confirmed=true;
+  row.merchant="Merchant "+id;row.date=date;return row;
+ }
  public static int run(){
   RewardPlan hsbc=RewardPlan.hsbcLivePlus();
 
@@ -65,11 +74,11 @@ public class RewardsTest {
   check(shown.remainingSpend==739300,"₹7,393.00 of eligible spend is left at 10%");
   check(shown.totalSpend==509700,"total spend is ₹5,097.00");
 
-  // Bucket lines keep upstream's wording.
+  // Several categories sharing a rate keep the generic wording; a lone category is named.
   check(shown.lines.size()==3,"the HSBC plan renders three buckets");
-  check(shown.lines.get(0).label.equals("Eligible spend at 10%"),"the capped bucket keeps upstream's label");
-  check(shown.lines.get(1).label.equals("Other eligible spend · 1.5%"),"the base bucket keeps upstream's label");
-  check(shown.lines.get(2).label.equals("Excluded spend · 0%"),"the excluded bucket keeps upstream's label");
+  check(shown.lines.get(0).label.equals("Eligible spend at 10%"),"four categories at one rate keep upstream's label");
+  check(shown.lines.get(1).label.equals("Other eligible · 1.5%"),"a lone category is named after itself");
+  check(shown.lines.get(2).label.equals("Excluded · 0%"),"the excluded category is named after itself");
   check(shown.lines.get(0).capped&&!shown.lines.get(1).capped,"only the accelerated bucket is capped");
 
   // Randomised ledgers: the real guard against an upstream rule change drifting from the preset.
@@ -129,6 +138,77 @@ public class RewardsTest {
   check(big.reward==301000,"ceilings apply per tier and then add up");
   check(Rewards.totals(Arrays.asList(tx(1,100000,1,"2026-11-05")),START,END,swiggy).reward==10000,
    "spend below the ceiling earns the full rate");
+
+  // Every tier of a plan like Amazon ICICI used to read "Other eligible spend"; each is named now.
+  Rewards.Totals tiers=Rewards.totals(Collections.<Engine.Tx>emptyList(),START,END,RewardPlan.amazonPayIcici());
+  check(tiers.lines.get(0).label.equals("Amazon (Prime) · 5%"),"the 5% tier is named");
+  check(tiers.lines.get(1).label.equals("Amazon Pay partners · 2%"),"the 2% tier is named");
+  check(tiers.lines.get(2).label.equals("Other eligible · 1%"),"the 1% tier is named");
+
+  // Credits: a payment touches nothing; a credit with a category takes that category's reward back.
+  RewardPlan amazon=RewardPlan.amazonPayIcici();
+  Rows.Row bought=new Rows.Row();bought.id=1;bought.amount=100000;bought.category=1;bought.confirmed=true;bought.merchant="AMAZON";bought.date="2026-11-05";
+  Rows.Row back=credit(2,40000,1,true,"2026-11-09");
+  Rows.Row bill=credit(3,500000,0,true,"2026-11-10");
+  Rewards.Totals reversedTotals=Rewards.totals(Arrays.<Engine.Tx>asList(bought,back,bill),START,END,amazon);
+  check(reversedTotals.lines.get(0).spend==60000,"a reversal comes off its category's spend");
+  check(reversedTotals.lines.get(0).reward==3000,"and its reward: 5% of ₹600, not of ₹1,000");
+  check(reversedTotals.reward==3000,"the period's reward is net of what was taken back");
+  check(reversedTotals.reversed==40000,"the reversed amount is reported");
+  check(reversedTotals.paid==500000,"a bill payment is reported apart");
+  check(reversedTotals.totalSpend==100000,"what was spent stays what was spent");
+  check(reversedTotals.netSpend==60000,"net spend is spent less reversed, not less payments");
+  check(reversedTotals.review==0,"a reversal you chose needs no review");
+
+  Rewards.Totals onlyBill=Rewards.totals(Arrays.<Engine.Tx>asList(bought,bill),START,END,amazon);
+  check(onlyBill.reward==5000&&onlyBill.netSpend==100000,"a payment changes neither reward nor spend");
+
+  Rewards.Totals suggested=Rewards.totals(Arrays.<Engine.Tx>asList(bought,credit(2,40000,1,false,"2026-11-09")),START,END,amazon);
+  check(suggested.review==1,"a suggested reversal asks for review");
+  check(suggested.reward==3000,"a suggested reversal still counts, as a suggested category does");
+
+  Rewards.Totals clawback=Rewards.totals(Arrays.<Engine.Tx>asList(credit(4,50000,2,true,"2026-11-09")),START,END,amazon);
+  check(clawback.lines.get(1).spend==-50000,"a reversal with nothing to reverse in the period leaves the tier negative");
+  check(clawback.reward==-1000,"and takes the reward back, as a statement would");
+  check(clawback.netSpend==-50000,"net spend goes below zero with it");
+
+  Rewards.Totals outside=Rewards.totals(Arrays.<Engine.Tx>asList(bought,credit(5,40000,1,true,"2026-12-03")),START,END,amazon);
+  check(outside.reward==5000&&outside.reversed==0,"a reversal belongs to the period it posts in");
+
+  Rows.Row deletedCredit=credit(6,40000,1,true,"2026-11-09");deletedCredit.active=false;
+  check(Rewards.totals(Arrays.<Engine.Tx>asList(bought,deletedCredit),START,END,amazon).reward==5000,"a deleted reversal takes nothing back");
+
+  Rows.Row stale=credit(7,40000,9,true,"2026-11-09");
+  Rewards.Totals staleTotals=Rewards.totals(Arrays.<Engine.Tx>asList(bought,stale),START,END,amazon);
+  check(staleTotals.reward==5000&&staleTotals.paid==40000,"a credit naming a category the plan no longer has counts as a payment");
+
+  // HSBC's shared cap still applies after a reversal.
+  Rows.Row heavy=new Rows.Row();heavy.id=1;heavy.amount=2000000;heavy.category=1;heavy.confirmed=true;heavy.merchant="SWIGGY";heavy.date="2026-11-05";
+  Rewards.Totals afterReversal=Rewards.totals(Arrays.<Engine.Tx>asList(heavy,credit(2,1000000,1,true,"2026-11-09")),START,END,hsbc);
+  check(afterReversal.cappedReward==100000,"after a reversal the capped tier earns on what is left, under the cap");
+
+  // Matching a credit to the purchase it probably reverses.
+  List<Engine.Tx> history=new ArrayList<>();
+  history.add(purchaseOn(1,226310,1,"2026-11-15"));
+  history.add(purchaseOn(2,99900,2,"2026-11-16"));
+  check(Rows.matchCategory(history,226310,"2026-11-19")==1,"a credit matching an earlier purchase takes its category");
+  check(Rows.matchCategory(history,226311,"2026-11-19")==0,"a different amount matches nothing");
+  check(Rows.matchCategory(history,226310,"2026-11-14")==0,"a purchase after the credit is not what it reversed");
+  check(Rows.matchCategory(history,226310,"2027-02-01")==0,"a purchase more than 60 days back is not matched");
+  history.add(purchaseOn(3,226310,3,"2026-11-17"));
+  check(Rows.matchCategory(history,226310,"2026-11-19")==3,"the latest matching purchase wins");
+  Rows.Row gone=purchaseOn(4,555500,2,"2026-11-18");gone.active=false;history.add(gone);
+  check(Rows.matchCategory(history,555500,"2026-11-19")==0,"a deleted purchase is not matched");
+  Rows.Row uncategorised=purchaseOn(5,777700,0,"2026-11-18");history.add(uncategorised);
+  check(Rows.matchCategory(history,777700,"2026-11-19")==0,"a purchase with no category has nothing to lend");
+  history.add(credit(6,888800,2,true,"2026-11-18"));
+  check(Rows.matchCategory(history,888800,"2026-11-19")==0,"an earlier credit is not taken for a purchase");
+  check(Rows.matchCategory(history,226310,"not a date")==0,"a malformed date matches nothing");
+
+  // Review counts include credits that want a look, and only those.
+  List<Engine.Tx> credits=Arrays.<Engine.Tx>asList(credit(1,100,1,false,"2026-11-05"),credit(2,100,1,true,"2026-11-05"),credit(3,100,0,true,"2026-11-05"));
+  check(Rows.reviewCount(credits,START,END)==1,"only the suggested reversal is counted for review");
+  check(!Rows.needsReview(credit(9,100,0,true,"2026-11-05")),"a payment never needs review");
 
   RewardPlan points=RewardPlan.rewardPoints();
   Rewards.Totals earned=Rewards.totals(Arrays.asList(tx(1,160000,1,"2026-11-05")),START,END,points);

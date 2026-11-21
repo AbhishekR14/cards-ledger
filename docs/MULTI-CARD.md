@@ -109,10 +109,24 @@ Upstream recorded spending only, and its parser turns a repayment away on purpos
 keeps those too: a bill payment, a reversed charge or a cashback credit is stored in the same
 ledger, marked as money paid **to** the card.
 
-- They never count as spend and never earn a reward, whatever the plan says.
-- They never need review and never carry a category.
-- The card's Overview shows them on a **Paid to the card** line; Activity shows them with a minus
-  and the note the alert used ("Payment received", "Cashback credited").
+A credit is one of two things, and you choose which:
+
+- **A bill payment** — the default. It changes neither spend nor rewards, never needs review, and
+  shows on the Overview's **Paid to the card** line.
+- **A reversal** — a credit that gives back money spent in a category. Pick that category on the
+  credit and it comes off that category's spend in the period it posts, taking that much
+  cashback or points back with it. The Overview shows it as **Reversed by credits**, and the
+  card's net spend and its tile both drop by it. If a period reverses more in a category than it
+  spent, the reward for that tier goes below zero, as a statement's clawback does.
+
+When a credit arrives for exactly the amount of an earlier purchase on the same card — within 60
+days before it — the app takes that purchase's category as a **suggestion**. The reward comes
+off straight away, as any suggested category counts, but the credit is flagged for review: a bill
+payment that happens to equal one purchase is the case to correct. With no matching purchase, a
+credit stays a payment.
+
+Activity shows credits with a minus in green and the note the alert used ("Payment received",
+"Cashback credited"); tap one to change what it reverses.
 - A refund against a purchase is *not* a credit: upstream already records those and links them to
   the purchase they reverse, which reduces that purchase's eligible spend.
 - Add one by hand with **Add purchase**, ticking "Money paid to the card, not spent".

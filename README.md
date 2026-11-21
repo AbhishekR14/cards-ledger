@@ -26,7 +26,7 @@ If the download will not start, it is the browser rather than the link. Chrome b
 - **A ledger per card.** Transactions, refunds, duplicates, merchant mappings, statement period and backups stay separate.
 - **Reward rules you enter yourself.** Each category earns a percentage or points per block of spend; mark the ones that share a cap; cap either the rewards earned or the qualifying spend. Presets for HSBC Live+, accelerated cashback, flat cashback and reward points, and plans import and export as JSON.
 - **Capture routed by card.** One switch for the phone and a toggle per card. An alert goes to the card whose bank *and* last four digits both match, so a purchase is never counted twice.
-- **Payments and credits too.** Money paid to the card, a reversed charge or a cashback credit is recorded alongside the spending, kept out of rewards and shown on its own.
+- **Payments and credits too.** A bill payment is recorded and left out of rewards. A credit that reverses a purchase takes back that category's cashback or points — matched to the purchase automatically when the amount lines up, or chosen by you.
 - **Review before it counts.** Suggested categories are provisional; unknown categories and possible duplicates stay out of the estimate until you confirm them, and refunds need linking to their purchase.
 - **One backup for the whole app.** Settings → Back up everything writes a single file holding every card, its entries, its merchant mappings, its plan and its settings. Restore it after an uninstall and the app is as it was.
 - Manual entry, pasted alerts, per-card backups, and colours that follow your wallpaper on Android 12 and newer.

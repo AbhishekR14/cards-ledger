@@ -30,8 +30,12 @@ public final class Rewards {
   public long cappedReward,cappedRewardBeforeCap,baseReward,reward;
   /** Headroom. {@code -1} when the plan cannot express it. */
   public long remainingSpend=-1,remainingReward=-1;
-  /** Money posted to the card in the period: payments, credits and reversals. */
-  public long credits;
+  /** Payments to the card in the period, which touch neither spend nor rewards. */
+  public long paid;
+  /** Credits that reverse spending in a category: they reduce that category's spend and reward. */
+  public long reversed;
+  /** What was spent less what credits reversed. The figure a tile and the Overview lead with. */
+  public long netSpend;
   public long[] spendByCategory=new long[0];
   public final List<Line> lines=new ArrayList<>();
   public int review;
@@ -45,10 +49,19 @@ public final class Rewards {
   Totals t=new Totals();
   t.spendByCategory=new long[plan.count()];
   for(Engine.Tx x:rows){
-   // Money posted to the card is not spending and earns nothing; it is counted on its own.
-   if(!x.active||Rows.credit(x))continue;
+   if(!x.active)continue;
    LocalDate date=LocalDate.parse(x.date);
    if(date.isBefore(start)||date.isAfter(end))continue;
+   // A credit with no category is a payment: it touches neither spend nor rewards. A credit
+   // with one reverses spending in that category, in the period it posts, so that category's
+   // spend and reward go down by what it took back.
+   if(Rows.credit(x)){
+    if(x.category>0&&plan.category(x.category)!=null){
+     t.reversed+=x.amount;t.spendByCategory[x.category]-=x.amount;
+     if(!x.confirmed)t.review++;
+    }else t.paid+=x.amount;
+    continue;
+   }
    if(x.refund){if(x.linked.isEmpty()){t.refunds+=x.amount;t.review++;}continue;}
    long net=x.amount;
    for(Engine.Tx refund:rows)if(refund.active&&refund.refund&&refund.linked.equals(String.valueOf(x.id)))net-=refund.amount;
@@ -63,10 +76,12 @@ public final class Rewards {
   // Collect spend per bucket, keeping the plan's own order.
   Map<String,Long> bucketSpend=new LinkedHashMap<>();
   Map<String,RewardPlan.Category> buckets=new LinkedHashMap<>();
+  Map<String,Integer> members=new HashMap<>();
   for(int index=1;index<plan.count();index++){
    RewardPlan.Category category=plan.category(index);
    String bucket=category.bucket();
-   buckets.put(bucket,category);
+   if(!buckets.containsKey(bucket))buckets.put(bucket,category);
+   members.put(bucket,(members.containsKey(bucket)?members.get(bucket):0)+1);
    bucketSpend.put(bucket,(bucketSpend.containsKey(bucket)?bucketSpend.get(bucket):0L)+t.spendByCategory[index]);
   }
 
@@ -76,14 +91,21 @@ public final class Rewards {
    long spend=bucketSpend.get(entry.getKey());
    boolean paying=category.rateBps>0||category.points>0;
    long earning=spend,reward;
-   if(category.capped&&capSpendLeft!=Long.MAX_VALUE){earning=Math.min(spend,Math.max(0,capSpendLeft));capSpendLeft-=earning;}
-   reward=earn(category,earning);
+   if(spend<0){
+    // More was reversed than spent in this period: the reward is taken back, as a statement shows it.
+    reward=-earn(category,-spend);
+   }else{
+    if(category.capped&&capSpendLeft!=Long.MAX_VALUE){earning=Math.min(spend,Math.max(0,capSpendLeft));capSpendLeft-=earning;}
+    reward=earn(category,earning);
+   }
    // A tier with its own ceiling stops there, whatever the plan's shared cap does.
    if(category.ceiling>0)reward=Math.min(category.ceiling,reward);
    if(category.capped){t.cappedSpend+=spend;t.cappedRewardBeforeCap+=reward;}
    else if(paying){t.baseSpend+=spend;t.baseReward+=reward;}
    else t.excludedSpend+=spend;
-   t.lines.add(new Line(label(category),spend,reward,category.capped,paying));
+   // A tier holding one category is named after it ("Amazon (Prime) · 5%"); several categories
+   // sharing a rate keep the generic wording, as HSBC's four 10% categories do.
+   t.lines.add(new Line(members.get(entry.getKey())==1?category.label():label(category),spend,reward,category.capped,paying));
   }
 
   t.cappedReward=RewardPlan.CAP_REWARD.equals(plan.capBasis)?Math.min(plan.capAmount,t.cappedRewardBeforeCap):t.cappedRewardBeforeCap;
@@ -96,7 +118,7 @@ public final class Rewards {
   else if(RewardPlan.CAP_REWARD.equals(plan.capBasis)&&single!=null&&single.pointsBased()&&single.points>0)
    t.remainingSpend=Math.max(0,plan.capAmount*single.blockPaise/single.points-t.cappedSpend);
   if(RewardPlan.CAP_REWARD.equals(plan.capBasis))t.remainingReward=Math.max(0,plan.capAmount-t.cappedReward);
-  t.credits=Rows.credits(rows,start,end);
+  t.netSpend=t.totalSpend-t.reversed;
   return t;
  }
 

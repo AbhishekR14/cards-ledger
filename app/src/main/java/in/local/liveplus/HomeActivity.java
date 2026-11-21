@@ -61,13 +61,14 @@ public class HomeActivity extends Activity {
  }
  LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
  GradientDrawable background(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
- void add(LinearLayout parent,View child){parent.addView(child,new LinearLayout.LayoutParams(-1,-2));}
+ void add(LinearLayout parent,View child){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);if(child instanceof Button){lp.topMargin=dp(5);lp.bottomMargin=dp(5);}parent.addView(child,lp);}
  void gap(LinearLayout parent,int height){View v=new View(this);parent.addView(v,new LinearLayout.LayoutParams(1,dp(height)));}
  Button button(String label,View.OnClickListener click){
   Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(ON_ACCENT);b.setTextSize(14);b.setMinHeight(dp(48));
   int ripple=Color.argb(56,Color.red(ON_ACCENT),Color.green(ON_ACCENT),Color.blue(ON_ACCENT));
   b.setBackgroundTintList(null);
   b.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(ripple),background(MINT,24),background(Color.WHITE,24)));
+  b.setPadding(dp(20),dp(10),dp(20),dp(10));
   b.setStateListAnimator(null);b.setElevation(0);b.setOnClickListener(click);return b;
  }
  void toast(String message){Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
@@ -76,7 +77,7 @@ public class HomeActivity extends Activity {
  void draw(){
   CardBook book=Cards.book(this);
   root=column();root.setBackgroundColor(BG);root.setPadding(dp(20),dp(12),dp(20),0);setContentView(root);
-  root.setOnApplyWindowInsetsListener((v,insets)->{root.setPadding(dp(20),Math.max(dp(12),insets.getSystemWindowInsetTop()),dp(20),insets.getSystemWindowInsetBottom());return insets;});
+  root.setOnApplyWindowInsetsListener((v,insets)->{root.setPadding(dp(20),Math.max(dp(12),insets.getSystemWindowInsetTop())+dp(14),dp(20),insets.getSystemWindowInsetBottom());return insets;});
   LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);
   top.addView(text("Cards Ledger",28,INK,true),new LinearLayout.LayoutParams(0,-2,1));
   Button settings=button("Settings",v->startActivity(new Intent(this,MainActivity.class).putExtra(MainActivity.EXTRA_DEVICE,true)));
@@ -134,8 +135,8 @@ public class HomeActivity extends Activity {
   add(tile,text(card.name,17,Color.WHITE,true));
   add(tile,text(card.issuer+(four.isEmpty()?"":"  ···· "+four),12,Color.rgb(202,220,222),false));
   gap(tile,8);
-  add(tile,text(cash(totals.totalSpend),24,Color.WHITE,true));
-  add(tile,text("spent this period",11,Color.rgb(202,220,222),false));
+  add(tile,text(cash(totals.netSpend),24,Color.WHITE,true));
+  add(tile,text(totals.reversed>0?"net spent, after "+cash(totals.reversed)+" credited":"spent this period",11,Color.rgb(202,220,222),false));
   gap(tile,6);
   add(tile,text(capped?earnedText+" of "+(plan.pointsUnit()?plan.capAmount+" pts":cash(plan.capAmount)):earnedText+" earned",13,ON_TILE,true));
   if(capped){
@@ -153,7 +154,7 @@ public class HomeActivity extends Activity {
   tile.setOnClickListener(v->startActivity(new Intent(this,MainActivity.class).putExtra(Cards.EXTRA_CARD,card.id)));
   tile.setOnLongClickListener(v->{manage(card);return true;});
   tile.setContentDescription(card.name+", "+card.issuer+(four.isEmpty()?"":" ending "+four)+", "
-   +cash(totals.totalSpend)+" spent this period, "+earnedText+" earned"
+   +cash(totals.netSpend)+" net spent this period, "+earnedText+" earned"
    +(totals.review>0?", "+totals.review+" to review":"")+". Tap to open, press and hold to manage.");
   return tile;
  }
@@ -165,7 +166,8 @@ public class HomeActivity extends Activity {
   tile.setBackground(outline);
   TextView plus=text("+",30,INK,true);plus.setGravity(Gravity.CENTER);
   add(tile,plus);
-  add(tile,text(book.isEmpty()?"Add a card":"Add another card",13,MUTED,false));
+  TextView label=text(book.isEmpty()?"Add a card":"Add another card",13,MUTED,false);label.setGravity(Gravity.CENTER);
+  add(tile,label);
   tile.setOnClickListener(v->addCard());
   tile.setContentDescription("Add a card");
   return tile;

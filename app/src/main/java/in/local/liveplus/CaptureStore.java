@@ -19,7 +19,9 @@ public final class CaptureStore {
    SharedPreferences p=Cards.prefs(context,cardId);
    Rows.Row x=new Rows.Row();x.amount=parsed.amount;x.merchant=parsed.merchant;x.date=parsed.date;x.refund=parsed.refund;x.received=received;x.source=source;x.event=event;x.credit=credit;
    RewardPlan plan=Cards.plan(context,cardId);
-   if(credit){x.confirmed=true;x.category=0;}
+   // A credit of exactly what an earlier purchase cost probably reverses it, so it takes that
+   // purchase's category as a suggestion, which takes the reward back and asks for review.
+   if(credit){x.category=Rows.matchCategory(store.all(),x.amount,x.date);x.confirmed=x.category==0;}
    else{store.categorize(x,p.getBoolean("myntra",false),Cards.usesBuiltInCategories(plan),plan);x.duplicate=possibleDuplicate;if(x.duplicate)x.confirmed=false;}
    for(Engine.Tx existing:store.all()){
     if(existing.event.equals(x.event))return 2;

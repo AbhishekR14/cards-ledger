@@ -47,6 +47,44 @@ public final class Rows {
   for(Engine.Tx row:rows)if(!credit(row))out.add(row);
   return out;
  }
+ /**
+  * True when a row still wants a look. A purchase follows upstream's rule. A credit only does
+  * when the category it reverses was suggested rather than chosen, because a wrong suggestion
+  * would take a reward back that was never lost.
+  */
+ public static boolean needsReview(Engine.Tx row){
+  if(credit(row))return row.category>0&&!row.confirmed;
+  return Engine.needsReview(row);
+ }
+ public static int reviewCount(List<Engine.Tx> rows,java.time.LocalDate start,java.time.LocalDate end){
+  int count=0;
+  for(Engine.Tx row:rows){
+   if(!row.active||!needsReview(row))continue;
+   java.time.LocalDate date=java.time.LocalDate.parse(row.date);
+   if(!date.isBefore(start)&&!date.isAfter(end))count++;
+  }
+  return count;
+ }
+ /** How far back a credit looks for the purchase it might be reversing. */
+ public static final int MATCH_DAYS=60;
+ /**
+  * The category of the purchase a credit is most likely reversing: the latest active purchase of
+  * exactly the same amount, dated on or before the credit and no more than {@link #MATCH_DAYS}
+  * earlier. 0 when there is none, which leaves the credit as a plain payment.
+  */
+ public static int matchCategory(List<Engine.Tx> rows,long amount,String date){
+  java.time.LocalDate when;
+  try{when=java.time.LocalDate.parse(date);}catch(RuntimeException ignored){return 0;}
+  Engine.Tx best=null;java.time.LocalDate bestDate=null;
+  for(Engine.Tx row:rows){
+   if(credit(row)||row.refund||!row.active||row.duplicate||row.category<=0||row.amount!=amount)continue;
+   java.time.LocalDate bought;
+   try{bought=java.time.LocalDate.parse(row.date);}catch(RuntimeException ignored){continue;}
+   if(bought.isAfter(when)||bought.isBefore(when.minusDays(MATCH_DAYS)))continue;
+   if(best==null||bought.isAfter(bestDate)||(bought.equals(bestDate)&&row.id>best.id)){best=row;bestDate=bought;}
+  }
+  return best==null?0:best.category;
+ }
  /** What was posted to the card in the period, in paise. */
  public static long credits(List<Engine.Tx> rows,java.time.LocalDate start,java.time.LocalDate end){
   long total=0;
