@@ -7,15 +7,14 @@ import java.util.regex.*;
  * Decides which card an incoming alert belongs to.
  *
  * <p>Parsing itself stays with {@link Engine#parse}: amount, card suffix, merchant, date, refund
- * wording and the OTP, decline and repayment rejections are upstream's and are not duplicated
- * here, so upstream's parser fixes reach every card.
+ * wording and the OTP, decline and repayment rejections live there once, so a parser fix reaches
+ * every card.
  *
- * <p>Upstream's parser requires the bank's own name in the text because it only ever served one
- * HSBC card. This router applies each card's own issuer gate first and then appends that token to
- * the <em>context</em> argument, which {@code Engine.parse} concatenates ahead of the body. That
- * satisfies the gate without touching the body or weakening any check — the same shape as
- * upstream's own "Paste alert", which passes a literal {@code "HSBC"} context. The card's issuer
- * gate is what actually decides the bank, so a card never claims another bank's message.
+ * <p>{@code Engine.parse} gates on the token {@code "HSBC"} in its input. This router applies each
+ * card's own issuer gate first and then appends that token to the <em>context</em> argument, which
+ * {@code Engine.parse} concatenates ahead of the body. That satisfies the gate without touching the
+ * body or weakening any check. The card's issuer gate is what actually decides the bank, so a card
+ * never claims another bank's message.
  */
 public final class Alerts {
  /** A card that capture should try, as configured on the device. */
@@ -67,7 +66,7 @@ public final class Alerts {
   return out;
  }
  /** The context handed to {@link Engine#parse}: the original plus the card's bank token and the
-  * token upstream's gate looks for. */
+  * token Engine's gate looks for. */
  public static String gate(String context,String issuer){
   return (context==null?"":context)+" "+(issuer==null?"":issuer)+" HSBC";
  }
@@ -79,10 +78,10 @@ public final class Alerts {
  }
 
  /**
-  * Upstream reads the merchant from "at ...", "towards ..." or "merchant: ...", which is how HSBC
+  * Engine reads the merchant from "at ...", "towards ..." or "merchant: ...", which is how HSBC
   * writes an alert. Other banks do not: ICICI writes "on 21-Nov-26 on AMAZON PAY IN R" and Axis
   * puts the merchant on its own line between the time and the available limit. These patterns run
-  * only when upstream found no merchant, so its own reading is never overridden.
+  * only when Engine found no merchant, so its own reading is never overridden.
   */
  private static final Pattern[] MERCHANT_FALLBACKS={
   // ICICI: "... spent using ICICI Bank Card XX1001 on 21-Nov-26 on AMAZON PAY IN R."
@@ -91,7 +90,7 @@ public final class Alerts {
   Pattern.compile("(?i)[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?\\s+(?:at\\s+|on\\s+)?(.+?)\\s*(?=[.;\\n]|\\b(?:avl|available|avbl)\\b)"),
   Pattern.compile("(?i)[0-9]{1,2}[-/](?:[0-9]{1,2}|[A-Za-z]{3,9})[-/][0-9]{2,4}\\s+(?:at\\s+|on\\s+)?(.+?)\\s*(?=[.;\\n]|\\b(?:avl|available|avbl)\\b)")
  };
- /** Fills in the merchant when upstream could not read one. */
+ /** Fills in the merchant when Engine could not read one. */
  public static void name(Engine.Parsed parsed,String body){
   if(parsed==null||body==null||!"Unknown merchant".equals(parsed.merchant))return;
   for(Pattern pattern:MERCHANT_FALLBACKS){
@@ -161,7 +160,7 @@ public final class Alerts {
   String event=NotificationCapture.digest("credit-v1|"+subscription+"|"+first.sender+"|"+first.sent+"|"+body.replaceAll("\\s+"," ").trim());
   return new SmsMatch(target.cardId,new SmsCapture.Candidate(asTransaction(posted),event,received),true);
  }
- /** The same parts with the bank token added to the sender, so upstream's own gate passes. */
+ /** The same parts with the bank token added to the sender, so Engine's own gate passes. */
  public static List<SmsCapture.Part> withGate(List<SmsCapture.Part> parts,String issuer){
   List<SmsCapture.Part> out=new ArrayList<>();
   for(SmsCapture.Part part:parts)out.add(part==null?null:new SmsCapture.Part(gate(part.sender,issuer),part.body,part.sent));

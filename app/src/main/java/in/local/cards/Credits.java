@@ -11,17 +11,17 @@ import java.util.regex.*;
  *
  * <p>{@link Engine#parse} rejects these on purpose — it was written for one card's spending — so
  * this is a separate reader rather than a change to it. A refund against a purchase is left to
- * upstream, which already records and links those; this only takes what upstream turns away.
+ * the purchase parser, which already records and links those; this only takes what it turns away.
  *
- * <p>The amount and card-suffix patterns are deliberately the same shape as upstream's. They are
- * restated here because upstream's are private and this reads a different kind of message; if
- * upstream improves its own, check whether these want the same change.
+ * <p>The amount and card-suffix patterns are deliberately the same shape as Engine's. They are
+ * restated here because Engine's are private and this reads a different kind of message; if
+ * Engine's change, check whether these want the same change.
  */
 public final class Credits {
  private static final Pattern AMOUNT=Pattern.compile("(?i)(?:INR|Rs\\.?|₹)\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)(?![0-9.])");
  private static final Pattern CARD=Pattern.compile("(?i)(?:card|cc)\\b[^.\\n]{0,50}?(?:ending(?:\\s+with|\\s+in)?|end|[xX*•]{2,}|no\\.?|number)[:\\s.xX*•-]*([0-9]{4})(?![0-9])");
  private static final Pattern REJECT=Pattern.compile("(?i)\\b(otp|one.time.password|verification.code|declined|failed|unsuccessful|attempt|blocked|cancelled)\\b");
- /** Upstream owns refunds against a purchase, so they are not credits here. */
+ /** The purchase parser owns refunds against a purchase, so they are not credits here. */
  private static final Pattern REFUND=Pattern.compile("(?i)\\b(refund(?:ed)?|reversal|reversed)\\b");
  private static final Pattern SPEND=Pattern.compile("(?i)\\b(spent|debited|charged|purchase)\\b");
  /**

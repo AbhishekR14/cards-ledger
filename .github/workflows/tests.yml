@@ -1,4 +1,4 @@
-name: Parser and calculation tests
+name: Tests
 
 on:
   push:
@@ -21,6 +21,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Run synthetic parser and reward checks
+      - name: Run the test suites
         shell: pwsh
         run: ./tools/test.ps1

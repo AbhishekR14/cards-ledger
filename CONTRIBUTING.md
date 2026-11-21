@@ -1,13 +1,30 @@
 # Contributing
 
-Keep changes focused on offline spending/reward tracking. Explain the user-visible behavior and meaningful checks.
+Thanks for helping improve Cards Ledger. The app's scope is offline tracking of credit card spending
+and rewards; changes that add network access, accounts or analytics will not be accepted.
 
-For parser/calculation/capture fixes, reproduce the issue with a synthetic or thoroughly sanitized message, add a relevant case to `tests/EngineTest.java`, `tests/NotificationCaptureTest.java`, `tests/SmsCaptureTest.java` or `tests/SettingsValuesTest.java`, and run `tools/test.ps1` with JDK 17. For Android changes also run `tools/build-all.ps1` to build and verify both isolated editions, and check the affected phone behavior when possible using `DEVICE-CHECK.md`.
+## Reporting a problem
 
-Never include real OTPs, card digits, balances, references, credentials, exports or databases in tests/issues. Replace example suffixes consistently with synthetic digits such as `1234`.
+Open an issue describing what you expected and what happened, with your Android version and the app
+version from **Settings → About**.
 
-Follow [screenshot instructions](docs/screenshots/README.md). Only real reviewed images should be embedded in the README.
+**Never post real financial data.** If an alert was misread, rewrite it with made-up details: a
+synthetic amount, a merchant name, and the digits `1234` in place of your card's. Do not include
+OTPs, balances, reference numbers, backups or screenshots showing card details.
 
-Before committing, review `git status` and `git diff --cached`. Keep signing material, APKs, local build wrappers and personal records excluded. CI runs parser and calculation tests. Use the device checklist for Android behavior.
+## Changing the code
 
-Licensed under the [MIT License](LICENSE).
+1. Read [Development](docs/DEVELOPMENT.md) for the project layout.
+2. For a parser, reward or capture change, add a test that reproduces the case first. Tests live in
+   `tests/`; `MultiCardTest` runs the reward, routing, credit and backup suites, and `EngineTest`
+   runs the parser and capture suites.
+3. Run the tests with `./tools/test.sh` or `pwsh ./tools/test.ps1`.
+4. For a change to the interface, build the APK and check it on a phone using the
+   [device testing checklist](docs/DEVICE-TESTING.md).
+5. Describe what changed and how you verified it in the pull request.
+
+Before committing, check `git status`: keystores, APKs, backups and databases must never be added.
+`.gitignore` excludes the common ones.
+
+By contributing, you agree that your contribution is licensed under the project's
+[MIT License](LICENSE).

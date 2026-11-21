@@ -6,7 +6,7 @@ import java.util.*;
  * The list of tracked cards: identity and presentation only.
  *
  * <p>Each card's ledger settings (last four digits, statement day, cap, reward plan) stay in that
- * card's own preferences file, written by the screens upstream already owns. Card 1 keeps the
+ * card's own preferences file, written by the card's own Settings screen. Card 1 keeps the
  * original {@code ledger.db} and {@code settings} names, so a single-card install carries over
  * with no migration.
  *
@@ -25,9 +25,9 @@ public final class CardBook {
   public Card with(String name,String issuer,String senders,int accent,boolean capture){
    return new Card(id,name,issuer,senders,accent,capture);
   }
-  /** The database file backing this card. Card 1 keeps upstream's name. */
+  /** The database file backing this card. Card 1 keeps the original name. */
   public String database(){return CardBook.database(id);}
-  /** The preferences file backing this card. Card 1 keeps upstream's name. */
+  /** The preferences file backing this card. Card 1 keeps the original name. */
   public String preferences(){return CardBook.preferences(id);}
   /** Sender keywords, split and trimmed; empty means "any sender". */
   public List<String> senderList(){

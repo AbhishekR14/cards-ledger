@@ -30,7 +30,7 @@
 *.jar
 
 # Personal data and unreviewed media
-liveplus-backup*.json
+*backup*.json
 cards-ledger-*.json
 /backups/
 *.db

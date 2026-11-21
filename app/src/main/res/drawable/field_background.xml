@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A filled text field: a soft rounded well, outlined in the accent colour while focused. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+  <item android:state_focused="true">
+    <shape android:shape="rectangle">
+      <corners android:radius="16dp" />
+      <solid android:color="?attr/ledgerField" />
+      <stroke android:width="2dp" android:color="?android:attr/colorAccent" />
+      <padding android:left="16dp" android:top="14dp" android:right="16dp" android:bottom="14dp" />
+    </shape>
+  </item>
+  <item>
+    <shape android:shape="rectangle">
+      <corners android:radius="16dp" />
+      <solid android:color="?attr/ledgerField" />
+      <padding android:left="16dp" android:top="14dp" android:right="16dp" android:bottom="14dp" />
+    </shape>
+  </item>
+</selector>

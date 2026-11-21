@@ -33,7 +33,7 @@ public class HomeActivity extends Activity {
   palette();
   getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);
   getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-  // onResume draws; the first draw after opening lets the tiles rise in.
+  // OnResume draws; the first draw after opening lets the tiles rise in.
   entrance=true;
  }
  boolean entrance;
@@ -193,7 +193,7 @@ public class HomeActivity extends Activity {
  }
 
  void addCard(){
-  LinearLayout l=column();l.setPadding(dp(22),dp(10),dp(22),dp(10));
+  LinearLayout l=column();l.setPadding(dp(24),dp(6),dp(24),dp(6));
   final EditText name=input(l,"Card name, for example Axis Ace","",1);
   final EditText issuer=input(l,"Bank name as its messages write it","",1);
   final EditText last4=input(l,"Last four digits","",2);
@@ -247,7 +247,7 @@ public class HomeActivity extends Activity {
    }).setNegativeButton("Close",null).show();
  }
  void rename(final CardBook.Card card){
-  LinearLayout l=column();l.setPadding(dp(22),dp(10),dp(22),dp(10));
+  LinearLayout l=column();l.setPadding(dp(24),dp(6),dp(24),dp(6));
   final EditText name=input(l,"Card name",card.name,1);
   add(l,text("Tile colour",13,MUTED,true));
   final Spinner colour=new Spinner(this);
@@ -281,10 +281,10 @@ public class HomeActivity extends Activity {
    .show();
  }
  EditText input(LinearLayout parent,String label,String value,int type){
-  add(parent,text(label,13,MUTED,true));
+  TextView caption=text(label,13,MUTED,false);caption.setPadding(dp(4),0,dp(4),dp(6));add(parent,caption);
   EditText field=new EditText(this);
-  field.setText(value);field.setTextSize(16);field.setTextColor(INK);field.setInputType(type);field.setSingleLine(true);
-  add(parent,field);gap(parent,10);
+  field.setText(value);field.setTextSize(16);field.setTextColor(INK);field.setHintTextColor(MUTED);field.setInputType(type);field.setSingleLine(true);
+  add(parent,field);gap(parent,14);
   return field;
  }
 }

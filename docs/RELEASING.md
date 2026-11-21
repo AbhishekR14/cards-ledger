@@ -1,88 +1,58 @@
-# Generate an APK release
+# Releasing
 
-The [release workflow](../.github/workflows/release.yml) builds and publishes both signed APK editions when a version tag is pushed. Pushing to `main` runs tests but does not publish a release.
+Releases are built and published by the **Build and publish APK release** workflow when a version
+tag is pushed.
 
-Release assets from 1.0.3:
+## Versioning
 
-- `Cards-Ledger-Notifications.apk` — one selected SMS app's notifications; no SMS permission.
-- `Cards-Ledger-SMS.apk` — new incoming SMS through `RECEIVE_SMS`; no notification access or inbox scan.
-- `SHA256SUMS.txt` — one checksum line for each APK.
+Versions follow [semantic versioning](https://semver.org). The version lives in
+`app/src/main/AndroidManifest.xml`:
 
-Users choose one edition according to the access they are comfortable granting. Both share the app identity/version/signing key and cannot be installed side by side. Neither reads existing SMS. Older releases use `Cards-Ledger.apk` for the notification-based app. GitHub source archives are not installers. See [edition comparison](EDITIONS.md).
+- `android:versionName` is the version people see, such as `1.0.0`;
+- `android:versionCode` is a whole number that must increase with every release, or Android will
+  refuse to install the update.
 
-## 1. Configure signing secrets
+## Signing
 
-Use the retained signing key for both editions and every update. A first local [build](DEVELOPMENT.md#build) creates signing files only if absent.
+Every release must be signed with the same key, or it will not install over the previous one.
+Create the key once and keep it safe:
 
-In **GitHub → Settings → Secrets and variables → Actions**, configure:
+```sh
+keytool -genkeypair -keystore cards-ledger-release.p12 -storetype PKCS12 \
+  -alias cards-personal -keyalg RSA -keysize 3072 -validity 10000 \
+  -dname "CN=Cards Ledger"
+```
+
+Then add two repository secrets under **Settings → Secrets and variables → Actions**:
 
 | Secret | Value |
 | --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | Base64 contents of `.signing/personal-release.p12` |
-| `ANDROID_KEYSTORE_PASSWORD` | Contents of `.signing/key-password.txt` |
+| `ANDROID_KEYSTORE_BASE64` | The keystore file, base64-encoded (`base64 -w0 cards-ledger-release.p12`) |
+| `ANDROID_KEYSTORE_PASSWORD` | The keystore password |
 
-With an authenticated GitHub CLI, from the repository root:
+Store the keystore and password somewhere other than the repository. If the key is lost, users will
+have to uninstall and restore from a backup to move to a release signed with a new one.
 
-```powershell
-$repo = 'AbhishekR14/cards-ledger'
-[Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PWD '.signing/personal-release.p12'))) | gh secret set ANDROID_KEYSTORE_BASE64 --repo $repo
-Get-Content -LiteralPath '.signing/key-password.txt' -Raw | gh secret set ANDROID_KEYSTORE_PASSWORD --repo $repo
-gh secret list --repo $repo
-```
+Without these secrets the workflow still publishes, signing with a key generated for that run, and
+says so in the release notes.
 
-Keep keys/passwords private and out of source control. The workflow restores them temporarily and removes them afterward. Both APKs must match the public SHA-256 certificate fingerprint in `docs/RELEASE_SIGNING_CERTIFICATE.txt`. Do not generate a new key for an existing app update.
+## Publishing a release
 
-## 2. Validate and set the version
+1. Update `versionName` and `versionCode` in the manifest.
+2. Add the release's changes to `CHANGELOG.md`, and update `.github/RELEASE_NOTES.md`.
+3. Run the tests: `./tools/test.sh`.
+4. Commit, then tag the commit and push the tag:
 
-Update `android:versionName` and increase `android:versionCode` in `app/src/main/AndroidManifest.xml`. Both editions derive their version from it and must use identical values. Update `CHANGELOG.md` and `.github/RELEASE_NOTES.md` with both download choices and exact permission behavior.
+   ```sh
+   git tag -a v1.0.0 -m "Cards Ledger 1.0.0"
+   git push origin v1.0.0
+   ```
 
-Run `tools/build-all.ps1` with the [tool paths](DEVELOPMENT.md#build). It builds/signs/verifies both APKs, enforces permission/component isolation and creates both checksums. Test both editions using [DEVICE-CHECK.md](../DEVICE-CHECK.md), especially SMS installer allowlisting/user grant, OTP → purchase background delivery, no historical import, and in-place edition switching. Do not describe phone behavior as verified solely because compilation passed.
+The workflow checks that the tag matches `versionName`, builds and verifies the SMS edition, and
+publishes a GitHub release with `Cards-Ledger-SMS.apk` and `SHA256SUMS.txt`. A tag with a suffix,
+such as `v1.1.0-beta.1`, is published as a prerelease.
 
-## 3. Push a release tag
+## After publishing
 
-Commit and push reviewed changes, then create a tag matching the manifest base version:
-
-```powershell
-git tag -a v1.0.3 -m "Cards Ledger 1.0.3"
-git push origin v1.0.3
-```
-
-A suffix such as `v1.0.3-beta.1` publishes a prerelease; a plain tag publishes a normal release. Manifest `1.0` is accepted as base tag `1.0.0`. Use a new version/tag for a new release; existing assets are not silently replaced.
-
-## 4. Check the workflow
-
-Open [GitHub Actions](https://github.com/AbhishekR14/cards-ledger/actions). The job:
-
-1. Checks tag/version/signing configuration and installs SDK packages.
-2. Runs synthetic tests and builds both editions using separate capture sources.
-3. Verifies both signatures, ZIP alignment, exact permissions and component isolation.
-4. Checks each certificate against the retained public fingerprint.
-5. Generates two checksum lines and publishes both APKs plus `SHA256SUMS.txt`.
-
-A failed test, missing secret, signature mismatch, permission/component leak or build failure stops publication. Workflow configuration is not proof of successful publication: check the actual run and release assets.
-
-## Verify a download
-
-Download your chosen APK and `SHA256SUMS.txt` from the same release. In PowerShell:
-
-```powershell
-Get-FileHash -LiteralPath './Cards-Ledger-SMS.apk' -Algorithm SHA256
-Get-Content -LiteralPath './SHA256SUMS.txt'
-```
-
-Compare with the line for that exact filename; use the Notifications filename if you chose it. Letter case does not matter. File checksums differ between editions/builds; the signing certificate identifies the retained app signing identity.
-
-## Download links
-
-After a normal two-edition release is published:
-
-```text
-https://github.com/AbhishekR14/cards-ledger#build-and-test
-https://github.com/AbhishekR14/cards-ledger/releases/download/test-build/Cards-Ledger-SMS.apk
-```
-
-These links work only once the latest normal release contains the named assets. They do not select prereleases; use the prerelease page directly. The old `Cards-Ledger.apk` asset name is not published by the new workflow.
-
-Explain compatible in-place edition switching: export first, install one same/newer compatible edition without uninstalling, open the app and enable the new capture method. Existing local merchant mappings survive in-place updates but are not included in JSON backups. See [installation](INSTALLATION.md) and [privacy](../PRIVACY.md).
-
-References: [GitHub releases](https://cli.github.com/manual/gh_release_create), [Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
+Install the release on a phone over the previous version and work through the
+[device testing checklist](DEVICE-TESTING.md).

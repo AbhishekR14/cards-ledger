@@ -1,9 +1,10 @@
-## Change
+## Summary
 
-Describe the behavior or issue addressed.
+What does this change, and why?
 
 ## Verification
 
-Describe meaningful tests and actual phone checks. Identify device behavior still unverified.
+- [ ] `./tools/test.sh` passes
+- [ ] Checked on a phone, if the change affects the interface or capture (say which Android version)
 
-Confirm that no signing material, real financial records or unredacted screenshots are included.
+Confirm that no keystores, APKs, backups or real financial data are included.

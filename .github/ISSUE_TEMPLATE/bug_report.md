@@ -1,27 +1,26 @@
 ---
 name: Bug report
-about: Report parser, calculation or Android behavior issues
+about: Something in Cards Ledger is not working as expected
 title: ''
 labels: bug
 assignees: ''
 ---
 
-## Problem
+## What happened
 
-What happened, and what did you expect?
+What did you expect, and what happened instead?
 
-## Reproduction
+## How to reproduce
 
-Include steps and a synthetic/redacted alert only if needed. Do not include an OTP, card suffix, balance, reference, credential, real backup or database.
+The steps that lead to the problem. If an alert was misread, include it **rewritten with made-up
+details**: an invented amount and merchant, and the digits `1234` in place of your card's.
 
-## Device and app
+Do not include OTPs, real card digits, balances, reference numbers, backups or unredacted
+screenshots.
+
+## Your phone
 
 - Phone model:
 - Android version:
-- App version:
-- Notification source app:
-- Relevant period setting (no personal financial details):
-
-## Checks
-
-State whether the issue was observed on a phone, in a desktop test, or both. Redact screenshots before attaching.
+- Cards Ledger version (Settings → About):
+- Card preset, if relevant:

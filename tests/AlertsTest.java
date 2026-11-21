@@ -23,10 +23,10 @@ public class AlertsTest {
  public static int run(){
   Alerts.Match hsbc=route("AX-HSBCBK","INR 1,234.50 spent on your HSBC Credit Card ending 1234 at SWIGGY on 20/11/2026. Avl limit INR 40,000.");
   check(hsbc!=null&&hsbc.cardId==1,"an HSBC alert reaches the HSBC card");
-  check(hsbc.transaction.amount==123450&&hsbc.transaction.merchant.equals("SWIGGY"),"upstream's parser still extracts the purchase");
+  check(hsbc.transaction.amount==123450&&hsbc.transaction.merchant.equals("SWIGGY"),"Engine's parser still extracts the purchase");
   check(hsbc.transaction.date.equals("2026-11-20"),"the alert's own date is kept");
 
-  // A second bank, parsed by the same upstream parser through the card's issuer gate.
+  // A second bank, parsed by the same Engine parser through the card's issuer gate.
   Alerts.Match axis=route("AD-AXISBK","INR 2,500.00 spent on Axis Bank Credit Card no. XX5678 at BLINKIT on 21-11-2026");
   check(axis!=null&&axis.cardId==2,"an Axis alert reaches the Axis card");
   check(axis.transaction.amount==250000&&axis.transaction.merchant.equals("BLINKIT"),"a non-HSBC purchase parses in full");
@@ -44,7 +44,7 @@ public class AlertsTest {
   List<Alerts.Match> both=Alerts.routeAll("HSBC and ICICI","INR 700 spent on HSBC ICICI Card ending 1234 at ZEPTO",NOW,CARDS);
   check(both.size()==2&&both.get(0).cardId==1,"when two cards both match, the earlier card wins");
 
-  // Upstream's own rejections must survive routing.
+  // Engine's own rejections must survive routing.
   check(route("AX-HSBCBK","OTP 123456 for a transaction of INR 500 on HSBC card ending 1234")==null,"an OTP is still rejected");
   check(route("AD-AXISBK","OTP 998877 is your Axis Bank one time password for card XX5678")==null,"another bank's OTP is rejected too");
   check(route("AD-AXISBK","Transaction of INR 500 on Axis Bank card XX5678 was declined")==null,"a declined purchase is rejected");
@@ -57,10 +57,10 @@ public class AlertsTest {
   check(refund!=null&&refund.transaction.refund&&refund.cardId==2,"a refund routes and is marked as one");
 
   // The issuer gate is what decides the bank; it is never satisfied by the trick that satisfies
-  // upstream's own gate.
+  // Engine's own gate.
   check(Alerts.gate("AD-AXISBK","Axis").toLowerCase(Locale.ROOT).contains("hsbc"),"the parser's own gate is satisfied for any bank");
   check(route("Unknown sender","INR 500 spent on Credit Card ending 1234 at CAFE")==null,"an alert naming no bank is ignored");
-  // Upstream's gate reads the sender alongside the body, and this one does the same.
+  // Engine's gate reads the sender alongside the body, and this one does the same.
   Alerts.Match bySender=route("AD-AXISBK","INR 500 spent on Credit Card ending 5678 at CAFE");
   check(bySender!=null&&bySender.cardId==2,"the sender id alone can name the bank");
 
@@ -90,20 +90,20 @@ public class AlertsTest {
    Collections.<Alerts.Target>emptyList())==null,"no cards means no capture");
   check(Alerts.route(null,null,NOW,CARDS)==null,"missing text is handled");
 
-  // Merchant wording that upstream's parser does not read, because HSBC does not use it.
+  // Merchant wording that Engine's parser does not read, because HSBC does not use it.
   Alerts.Match realIcici=route("AD-ICICIT","INR 50.00 spent using ICICI Bank Card XX1234 on 21-Nov-26 on AMAZON PAY IN R. Avl Limit: INR 5,97,445.42. If not you, call 1800 2662/SMS BLOCK 1234 to 9215676766.");
   check(realIcici!=null,"the ICICI alert from the phone parses");
   check(realIcici.transaction.merchant.equals("AMAZON PAY IN R"),"\"on <date> on <merchant>\" reads the merchant");
-  check(realIcici.transaction.amount==5000&&realIcici.transaction.date.equals("2026-11-21"),"amount and date still come from upstream's parser");
+  check(realIcici.transaction.amount==5000&&realIcici.transaction.date.equals("2026-11-21"),"amount and date still come from Engine's parser");
 
   Alerts.Match axisLine=route("AD-AXISBK","Spent Card no. XX5678 INR 250.00 21-11-26 19:42:11 BLINKIT Avl Lmt INR 98,000");
   check(axisLine!=null&&axisLine.transaction.merchant.equals("BLINKIT"),"a merchant between the time and the available limit is read");
   Alerts.Match dated=route("AD-AXISBK","INR 99.00 spent on Axis Bank Card XX5678 21-Nov-26 ZEPTO MARKETPLACE Avl Lmt INR 10,000");
   check(dated!=null&&dated.transaction.merchant.equals("ZEPTO MARKETPLACE"),"a merchant between the date and the available limit is read");
 
-  // Upstream's own reading always wins, and a fallback never invents a name.
+  // Engine's own reading always wins, and a fallback never invents a name.
   Alerts.Match hsbcNamed=route("AX-HSBCBK","INR 100 spent on your HSBC Credit Card ending 1234 at SWIGGY on 21/11/2026");
-  check(hsbcNamed.transaction.merchant.equals("SWIGGY"),"upstream's merchant is never overridden");
+  check(hsbcNamed.transaction.merchant.equals("SWIGGY"),"Engine's merchant is never overridden");
   Alerts.Match bare=route("AD-AXISBK","INR 75.00 spent on Axis Bank Credit Card XX5678");
   check(bare!=null&&bare.transaction.merchant.equals("Unknown merchant"),"an alert naming no merchant stays unknown");
   Engine.Parsed digitsOnly=new Engine.Parsed();digitsOnly.merchant="Unknown merchant";
@@ -113,7 +113,7 @@ public class AlertsTest {
   check(Alerts.fold("AD-AXISBK").equals("ad axisbk"),"sender ids flatten to searchable words");
   check(Alerts.fold("AD-AXISBK").contains("axis"),"a sender id still carries the bank's name");
 
-  // Incoming SMS: assembly, timestamps and the replay fingerprint stay with upstream's SmsCapture.
+  // Incoming SMS: assembly, timestamps and the replay fingerprint stay with SmsCapture.
   java.util.List<SmsCapture.Part> axisSms=java.util.Arrays.asList(
    new SmsCapture.Part("AD-AXISBK","INR 2,500.00 spent on Axis Bank Credit Card no. XX5678 ",NOW),
    new SmsCapture.Part("AD-AXISBK","at BLINKIT on 21-11-2026",NOW));
@@ -142,7 +142,7 @@ public class AlertsTest {
   check(batch.candidates.size()==1,"a gated notification yields one candidate");
   check(batch.candidates.get(0).transaction.amount==50000,"the candidate carries the purchase");
   check(NotificationCapture.collect(envelope,"5678",NOW-1000,null).candidates.isEmpty(),
-   "without the card's bank gate upstream's parser rejects another bank outright");
+   "without the card's bank gate Engine's parser rejects another bank outright");
   return checks;
  }
  public static void main(String[] args){System.out.println("AlertsTest: "+run()+" checks");}

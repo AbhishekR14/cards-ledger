@@ -6,8 +6,8 @@ import java.util.*;
  * Minimal strict JSON reader and writer with no Android or third-party dependency.
  *
  * <p>Android ships {@code org.json}, but the reward plan and card registry must also run in the
- * plain-Java test suite, which has no JSON library on its classpath. Upstream's own export and
- * restore paths keep using {@code org.json} and are untouched.
+ * plain-Java test suite, which has no JSON library on its classpath. The per-card export and
+ * restore use {@code org.json} directly.
  *
  * <p>Parsed values are {@code Map<String,Object>}, {@code List<Object>}, {@code String},
  * {@code Long}, {@code Double}, {@code Boolean} or {@code null}. Input is bounded in length and

@@ -31,7 +31,7 @@ public class CreditsTest {
 
   // What is not a credit.
   check(read("INR 500.00 spent using ICICI Bank Card XX1001 on 21-Nov-26 on AMAZON PAY IN R.")==null,"spending is not a credit");
-  check(read("Refund of INR 500 credited to your Credit Card XX1001 at AMAZON")==null,"a refund is left to upstream, which links it to its purchase");
+  check(read("Refund of INR 500 credited to your Credit Card XX1001 at AMAZON")==null,"a refund is left to the purchase parser, which links it to its purchase");
   check(read("OTP 445566 for the payment of INR 500 credited to Card XX1001")==null,"an OTP is rejected");
   check(read("Payment of INR 500 received on your Credit Card ending 9999")==null,"another card's payment is ignored");
   check(read("Your Credit Card XX1001 statement is ready. Amount due INR 5,000.")==null,"a statement notice is not a credit");

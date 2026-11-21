@@ -23,7 +23,7 @@ public final class SmsReceiver extends BroadcastReceiver {
   try{WORK.execute(()->{
    try{
     if(!p.getBoolean("capture",false)||p.getLong("started",Long.MAX_VALUE)!=started||!CaptureMode.access(app))return;
-    // the message is offered to each capturing card in grid order; the first whose
+    // The message is offered to each capturing card in grid order; the first whose
     // bank and card suffix both match keeps it, so it is never counted twice.
     Alerts.SmsMatch match=Alerts.routeSms(parts,started,received,subscription,Cards.targets(app));
     if(match!=null)CaptureStore.save(app,match.cardId,match.candidate.transaction,match.candidate.event,match.candidate.received,false,"SMS",match.credit);

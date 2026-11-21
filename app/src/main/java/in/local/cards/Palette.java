@@ -12,7 +12,7 @@ import android.os.Build;
  *
  * <p>On Android 12 and newer these come from the system's own palette, the one Android derives
  * from the wallpaper, so the app takes on the phone's colours. Older versions keep the theme's
- * fixed colours, which is what upstream always used. Nothing here needs a support library: the
+ * fixed colours. Nothing here needs a support library: the
  * dynamic colours are plain framework resources.
  */
 public final class Palette {
@@ -59,7 +59,7 @@ public final class Palette {
    color(activity,android.R.color.system_accent1_100),
    dark,true);
  }
- /** Upstream's fixed colours, for a phone without a system palette. */
+ /** The app's fixed colours, for a phone without a system palette. */
  private static Palette themed(Activity activity,boolean dark){
   return new Palette(
    theme(activity,android.R.attr.colorBackground),

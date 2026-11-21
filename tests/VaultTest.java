@@ -86,7 +86,7 @@ public class VaultTest {
   check(Rows.credits(Arrays.<Engine.Tx>asList(deleted),LocalDate.of(2026,11,1),LocalDate.of(2026,11,30))==0,"a deleted payment is not counted");
 
   // A backup this app should not act on.
-  rejects("{\"format\":\"liveplus-ledger-v1\",\"cards\":[]}","a single-card backup from the old app");
+  rejects("{\"format\":\"liveplus-ledger-v1\",\"cards\":[]}","a single-card backup");
   rejects("{\"format\":\"cards-ledger-backup-v1\"}","a backup with no cards");
   rejects("{\"format\":\"cards-ledger-backup-v1\",\"cards\":[{\"id\":1},{\"id\":1}]}","two cards with the same number");
   rejects("{\"format\":\"cards-ledger-backup-v1\",\"cards\":[{\"id\":0}]}","a card with no number");

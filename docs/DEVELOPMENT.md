@@ -1,94 +1,94 @@
 # Development
 
-## Requirements
-
-- Windows PowerShell for APK builds.
-- JDK 17: [Microsoft OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/download) or [Eclipse Temurin](https://adoptium.net/).
-- [Android SDK](https://developer.android.com/studio) Platform 35 and Build-Tools 35.0.0.
-
-Tools must include `aapt2`, `zipalign`, `d8.jar`, `apksigner.jar` and `core-lambda-stubs.jar`. There are no third-party app dependencies. Android Studio, Gradle and an emulator are not required for compilation.
+Cards Ledger is a native Android app in plain Java, with no third-party libraries and no Gradle. The
+build is a short PowerShell script around the Android SDK's own tools, and the logic that matters
+most — parsing, routing and reward maths — is plain Java with its own test suites.
 
 ## Project layout
 
-```text
-app/src/main/AndroidManifest.xml   Shared version/app metadata; Notifications manifest
-app/src/main/java/in/local/liveplus/
-  Engine.java                     Parser, merchant catalog, rewards and periods
-  Store.java                      Local database and merchant mappings
-  CaptureStore.java               Shared persistence and edition migration
-  SmsApps.java                    SMS-only notification-source discovery/migration
-  NotificationCapture.java        Pure-Java notification extraction/replay state
-  SmsCapture.java                 Pure-Java incoming multipart SMS parsing/identity
-  SettingsValues.java             Validated automatic settings input
-  MainActivity.java               Shared UI with capture-specific consent/settings
-app/src/notifications/java/in/local/liveplus/
-  CaptureMode.java                Notifications edition access adapter
-  AlertListener.java              Listener; only in Notifications APK
-app/src/sms/java/in/local/liveplus/
-  CaptureMode.java                SMS edition access adapter
-  SmsReceiver.java                Incoming receiver; only in SMS APK
-app/src/main/res/                 Shared artwork and Light/Dark resources
-tests/EngineTest.java             Parser/calculation/merchant checks
-tests/NotificationCaptureTest.java Notification extraction/replay checks
-tests/SmsCaptureTest.java         New SMS, multipart, OTP and event-identity checks
-tests/SettingsValuesTest.java     Automatic-write validation and card-change protection
-tools/Compile.java                Java compiler helper
-tools/test.ps1                   SDK-free synthetic tests
-tools/build-all.ps1              Both APKs and checksums
-tools/verify-apk.ps1              Packaged permission/component checks
-build.ps1                        Single-edition build/sign/verification
-.github/workflows/tests.yml      Test automation
-.github/workflows/release.yml    Two-edition release automation
-docs/screenshots/                README images
+```
+app/src/main/java/in/local/cards/    shared code
+app/src/sms/java/in/local/cards/     the SMS capture edition (published)
+app/src/notifications/...            the notification capture edition (optional build)
+app/src/main/res/                    themes, transitions, drawables
+tests/                               plain-Java test suites
+tools/                               test runners and APK verification
+build.ps1                            builds, tests, signs and verifies one APK
 ```
 
-## Build
+| Class | Responsibility |
+| --- | --- |
+| `Engine` | Purchase parsing, merchant catalogue, statement periods, HSBC Live+ maths |
+| `Alerts` | Routes an alert to its card; merchant fallbacks for other banks' wording |
+| `Credits` | Reads payments and credits to a card |
+| `SmsCapture`, `NotificationCapture` | Assemble messages and fingerprint them against replays |
+| `RewardPlan`, `Rewards` | A card's reward scheme and the period totals it produces |
+| `Rows` | Ledger rows, credits, reversal matching and review counts |
+| `CardBook`, `Cards` | The card registry and each card's storage |
+| `Store` | One SQLite ledger per card, with merchant mappings |
+| `Vault` | The whole-app backup format |
+| `Json` | A small strict JSON reader and writer, so the above stay testable |
+| `HomeActivity`, `MainActivity`, `PlanEditor` | The interface |
+| `Palette`, `Motion` | Colour, including Material You, and animation |
 
-From the repository root:
+Everything above `HomeActivity` in the table is free of Android dependencies, which is what lets the
+test suites run on a plain JDK.
+
+## Running the tests
+
+```sh
+./tools/test.sh            # macOS, Linux
+pwsh ./tools/test.ps1      # Windows, or anywhere with PowerShell
+```
+
+This runs `EngineTest` (parser, periods, notification and SMS capture, settings validation) and
+`MultiCardTest` (JSON, reward plans, reward totals, the card registry, alert routing, credits and
+backups) — about five thousand checks. `RewardsTest` includes a randomised comparison of the generic
+reward calculator against `Engine.totals` for the HSBC Live+ preset.
+
+The **Tests** workflow runs the same suites on every push to `main` and on pull requests.
+
+## Building the APK
+
+Requirements: Windows PowerShell, JDK 17, Android SDK Platform 35 and Build-Tools 35.0.0.
 
 ```powershell
-./tools/build-all.ps1 `
+./build.ps1 -Edition sms `
   -JavaHome 'C:/path/to/jdk-17' `
   -AndroidJar 'C:/path/to/Android/Sdk/platforms/android-35/android.jar' `
   -BuildTools 'C:/path/to/Android/Sdk/build-tools/35.0.0'
 ```
 
-Or set `JAVA_HOME` and `ANDROID_SDK_ROOT` (or `ANDROID_HOME`) and run `./tools/build-all.ps1`. Explicit paths take priority. Outputs: `build/Cards-Ledger-Notifications.apk`, `build/Cards-Ledger-SMS.apk` and `build/SHA256SUMS.txt`.
+With `JAVA_HOME` and `ANDROID_SDK_ROOT` set, `./build.ps1 -Edition sms` is enough. The script runs
+the tests, compiles resources and code, signs the APK and checks that it requests only the
+permissions its edition should, writing `build/Cards-Ledger-SMS.apk`.
 
-Build one using `./build.ps1 -Edition notifications` (default) or `./build.ps1 -Edition sms` with the same tool arguments; `-Output` changes its APK path. Each build runs synthetic tests, compiles resources/shared Java plus exactly one edition's Java, converts with D8, aligns/signs and verifies the APK. Intermediates are under `build/`.
+On the first build it creates a personal signing key under `.signing/`, which `.gitignore` excludes.
+Keep that folder: an update must be signed with the same key to install over an earlier build.
 
-The SMS manifest is derived from the shared Notifications manifest: source-app queries and notification service are removed; only `RECEIVE_SMS` and an exported `SMS_RECEIVED` receiver guarded by the platform's `BROADCAST_SMS` permission are added. Both editions retain the same package/version/key/database. The opposite edition's listener/receiver code is excluded.
+### Editions
 
-Artifact checks enforce exact uses-permissions, delivery components, opposite-component absence in DEX and no SMS inbox URI. These packaged-artifact checks do not replace phone testing or a full security audit. Neither edition may add `READ_SMS`, `SEND_SMS` or `INTERNET` for these features.
+The same code builds two editions that differ only in how they receive alerts:
 
-## Capture behavior
+| Edition | Receives alerts from | Permission |
+| --- | --- | --- |
+| `sms` (published) | New incoming SMS | `RECEIVE_SMS` |
+| `notifications` | Notifications posted by one chosen SMS app | Notification access |
 
-Notifications uses one SMS-capable package discovered from SMS delivery/composition handlers, with default-SMS fallback. Legacy multi-source selections are reduced to one valid SMS app. Android can redact an OTP-containing notification; no parser can recover withheld text. UI/docs explain clearing that conversation before later alerts and importing missed purchases manually.
+`./tools/build-all.ps1` builds both. `tools/verify-apk.ps1` fails a build whose manifest or code
+contains the other edition's capture component.
 
-SMS listens only for new `SMS_RECEIVED` broadcasts while permission/capture are enabled. It assembles multipart segments from one sender, applies the strict parser and hashes sender/body/network timestamp/subscription into an event identity; raw inputs are not saved. No provider query or historical import exists. Receipt time gates new delivery; an older network timestamp can belong to a newly delivered SMS. The manifest's sender permission prevents ordinary apps from injecting fake delivery broadcasts.
+## Preview builds
 
-The SMS permission requires installer allowlisting and user grant. OTP protections can still delay/filter messages. Test the actual GitHub/file-manager installation, permission prompt and background delivery on the target phone. Play Store distribution would need the appropriate SMS permission declaration/review. [Google Play policy](https://support.google.com/googleplay/android-developer/answer/10208820)
+The **Test build APKs** workflow builds the SMS edition on every push to `main` that touches the app,
+and publishes it as the `test-build` prerelease. It can also be started by hand from the Actions tab.
+Each run signs with a newly generated key, so a preview build will not install over a release or over
+another preview build.
 
-Edition switching preserves ledger/settings/mappings but turns capture off and clears capture fingerprint caches on first open. Same-edition updates preserve capture settings. Both editions use the same version code per release; older-code downgrades are unsupported. Restore requires an empty ledger and leaves capture off.
+## Conventions
 
-## Settings and presentation
-
-Both manifests use the application label Cards Ledger, including the notification-access service label. The installed UI displays only versionName (for example, 1.0.3). The integer versionCode stays internal for Android update ordering. The UI has no edition names, Save settings control or capture diagnostics. Temporary diagnostic reports from earlier builds are removed on open. Keep download distinctions in README/install/release docs.
-
-Text settings are validated by SettingsValues before writes. Valid changes are debounced for 650 ms and flushed on field exit, navigation, backgrounding and state saving. Invalid drafts keep the last valid stored value. Card changes are rejected for a populated ledger. Switches, merchant-source choice and promotion preference apply immediately. Capture activation validates card inputs and explicitly requests missing access. Returning from notification Settings activates only a user-requested pending capture action. Typing cannot trigger a permission prompt. Transaction/mapping Save actions remain explicit.
-
-## Tests
-
-```powershell
-./tools/test.ps1 -JavaHome 'C:/path/to/jdk-17'
-```
-
-Tests need a JDK, not the Android SDK. The script also works under PowerShell 7 on Linux/macOS using `JAVA_HOME` or Java on `PATH` when omitted.
-
-Coverage includes strict parser/OTP/decline/payment/card filtering, merchants and overrides, cashback/caps, periods, refunds/review, notification layouts/replay/retry, SMS multipart assembly, redelivery identity, unrelated/OTP rejection, malformed-input bounds and settings validation boundaries. Use synthetic messages only. Android permission UI, source discovery, background broadcasts, edition-switch persistence and Samsung OTP handling require the [device checklist](../DEVICE-CHECK.md).
-
-## Signing and contribution
-
-If absent, the first build creates `.signing/personal-release.p12` and `.signing/key-password.txt`. Preserve them privately: all updates and both editions must use the retained signing identity. Releases additionally check it against `docs/RELEASE_SIGNING_CERTIFICATE.txt`.
-
-`.signing/` and `build/` are Git-ignored. Never commit credentials, real messages, exports or databases. See [releasing](RELEASING.md) and [contributing](../CONTRIBUTING.md). Licensed under the [MIT License](../LICENSE).
+- Amounts are integer paise throughout; never use floating point for money except where
+  `Engine.totals` already does, which `Rewards` mirrors on purpose.
+- Category numbers are stored on each transaction. A plan's category order is its numbering, so new
+  categories are appended.
+- Test data is synthetic. Use the digits `1234` and invented merchants, never real alerts.

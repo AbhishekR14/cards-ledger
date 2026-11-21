@@ -1,14 +1,24 @@
-## Cards Ledger
+Track spending and rewards across all your credit cards — offline, on your phone.
 
-Track spending and estimated rewards across several credit cards, one tile per card. Offline,
-on-device, no internet permission.
+Cards Ledger reads the transaction alerts your banks already send, files each purchase under the
+right card, and estimates the cashback or points it earns under that card's own rules. It has no
+internet permission: everything stays on your phone.
 
-| Download | Access it asks for |
-| --- | --- |
-| **Cards-Ledger-SMS.apk** | `RECEIVE_SMS` for new incoming messages; no notification access or `READ_SMS` |
+### Highlights
 
-Install it over an earlier release signed with the same key and your data stays. A build signed
-with a different key needs the old one uninstalled first: back everything up beforehand from
-**Settings → Back up everything** and restore it afterwards.
+- A ledger and reward plan for every card, with presets for nine popular Indian cards
+- Automatic capture from new SMS, matched to the right card by bank and last four digits
+- Payments and reversals that take rewards back when a purchase is refunded
+- A review queue for unknown merchants, suggestions and possible duplicates
+- One-file backup and restore of everything
+- Material You design with light and dark themes
 
-**SHA256SUMS.txt** holds the APK's checksum. See [setting it up](https://github.com/AbhishekR14/cards-ledger#setting-it-up), [privacy](https://github.com/AbhishekR14/cards-ledger/blob/main/PRIVACY.md) and [using several cards](https://github.com/AbhishekR14/cards-ledger/blob/main/docs/MULTI-CARD.md).
+### Install
+
+Download **Cards-Ledger-SMS.apk** below and open it on an Android 8.0 or newer phone. If Chrome warns
+about the file, choose **Download anyway**. See the
+[installation guide](https://github.com/AbhishekR14/cards-ledger/blob/main/docs/INSTALLATION.md)
+for Play Protect and permission prompts, and the
+[user guide](https://github.com/AbhishekR14/cards-ledger/blob/main/docs/USER-GUIDE.md) to get started.
+
+`SHA256SUMS.txt` holds the APK's checksum.

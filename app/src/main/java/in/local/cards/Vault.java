@@ -6,7 +6,7 @@ import java.util.*;
  * One file holding everything the app knows: every card, every transaction and credit, every
  * merchant mapping, every reward plan and every card setting.
  *
- * <p>A card's own backup in its Settings screen is upstream's, one card at a time. This is the
+ * <p>A card's own backup in its Settings screen covers that card alone. This is the
  * whole device, so that restoring it after an uninstall leaves the app exactly as it was.
  *
  * <p>The shape and the reading of it are plain Java with no Android dependency, so the format is

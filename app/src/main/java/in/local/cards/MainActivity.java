@@ -21,7 +21,7 @@ import java.util.*;
 import org.json.*;
 
 public class MainActivity extends Activity {
- // the palette follows the phone's own colours on Android 12 and newer, so these
+ // The palette follows the phone's own colours on Android 12 and newer, so these
  // are set per draw rather than fixed. BRAND_INK is what sits on an accent fill, MINT the fill.
  int BRAND_INK=Color.rgb(20,45,53), MINT=Color.rgb(185,237,204);
  int INK,MUTED,BG,SURFACE,NOTICE,CORAL,SUCCESS,SELECTED,ON_SELECTED,REVIEW,ON_REVIEW,TAB_BG,TAB_BORDER;
@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
  final Handler settingsHandler=new Handler(Looper.getMainLooper());
  final Map<EditText,Runnable> settingWrites=new LinkedHashMap<>();
  SharedPreferences p; Store store; LinearLayout root,body,nav; String tab="Overview"; boolean reviewOnly=false; LocalDate anchor=LocalDate.now(ZoneId.of("Asia/Kolkata"));
- // p and store belong to one card; g holds the device-wide capture and theme state.
+ // P and store belong to one card; g holds the device-wide capture and theme state.
  SharedPreferences g; CardBook.Card card; RewardPlan plan; int cardId; boolean device,registered;
  public static final String EXTRA_DEVICE="in.local.cards.DEVICE",EXTRA_RESTORE="in.local.cards.RESTORE",EXTRA_SETTINGS="in.local.cards.SETTINGS";
  Set<String> selectedPackages=new HashSet<>();
@@ -52,11 +52,11 @@ public class MainActivity extends Activity {
   if(device){p=g;plan=RewardPlan.hsbcLivePlus();tab="Settings";}
   else{cardId=card.id;p=Cards.prefs(this,cardId);plan=Cards.plan(this,cardId);if(getIntent().getBooleanExtra(EXTRA_SETTINGS,false))tab="Settings";}
   CaptureStore.prepareEdition(this);if(!CaptureMode.SMS)SmsApps.selected(this);darkMode=Palette.dark(this,g.getString("theme","system"));setTheme(darkMode?R.style.AppTheme_Dark:R.style.AppTheme_Light);super.onCreate(b);applyPalette();if(!device)store=new Store(this,card.database());getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(darkMode?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);if(b!=null){pendingSmsEnable=b.getBoolean("pendingSmsEnable",false);pendingNotificationEnable=b.getBoolean("pendingNotificationEnable",false);tab=b.getString("tab","Overview");anchor=LocalDate.parse(b.getString("anchor",anchor.toString()));reviewOnly=b.getBoolean("reviewOnly",false);Bundle saved=b.getBundle("scrollPositions");if(saved!=null)scrollPositions=saved;}
-  // the card grid can send a new card straight into Restore backup.
+  // The card grid can send a new card straight into Restore backup.
   if(!device&&b==null&&getIntent().getBooleanExtra(EXTRA_RESTORE,false)){tab="Settings";draw();restore();}}
  @Override public void onSaveInstanceState(Bundle b){if(card==null&&!device){super.onSaveInstanceState(b);return;}flushSettings();rememberScroll();b.putBoolean("pendingSmsEnable",pendingSmsEnable);b.putBoolean("pendingNotificationEnable",pendingNotificationEnable);b.putString("tab",tab);b.putString("anchor",anchor.toString());b.putBoolean("reviewOnly",reviewOnly);b.putBundle("scrollPositions",new Bundle(scrollPositions));super.onSaveInstanceState(b);}
  @Override public void onResume(){super.onResume();
-  // the card's name, plan or very existence can change while this screen is away.
+  // The card's name, plan or very existence can change while this screen is away.
   if(device){if(pendingNotificationEnable){pendingNotificationEnable=false;if(access()&&savedCardReady())startCapture();}draw();return;}
   if(card==null)return;
   CardBook.Card current=Cards.book(this).get(cardId);
@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
  LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
  void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
- // stacked buttons get room between them; pill shapes touching read as one block.
+ // Stacked buttons get room between them; pill shapes touching read as one block.
  void add(LinearLayout l,View v){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);if(v instanceof Button){lp.topMargin=dp(5);lp.bottomMargin=dp(5);}l.addView(v,lp);}
  LinearLayout card(LinearLayout parent,int color){LinearLayout l=column();l.setPadding(dp(20),dp(20),dp(20),dp(20));l.setBackground(bg(color,26));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(14);parent.addView(l,lp);return l;}
  Button button(String s,View.OnClickListener click){
@@ -137,7 +137,7 @@ public class MainActivity extends Activity {
   animating=entrance||slide!=0;
   root=column();root.setBackgroundColor(BG);root.setPadding(dp(20),dp(12),dp(20),0);setContentView(root);
   root.setOnApplyWindowInsetsListener((v,i)->{root.setPadding(dp(20),Math.max(dp(12),i.getSystemWindowInsetTop())+dp(14),dp(20),i.getSystemWindowInsetBottom());return i;});
-  // the card's own name heads the screen, with a way back to the grid.
+  // The card's own name heads the screen, with a way back to the grid.
   LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);
   Button back=button("‹",v->finish());back.setContentDescription("Back to all cards");top.addView(back,new LinearLayout.LayoutParams(dp(46),dp(46)));
   TextView brand=text(device?"Settings":card.name,25,INK,true);LinearLayout.LayoutParams brandLayout=new LinearLayout.LayoutParams(0,-2,1);brandLayout.setMarginStart(dp(10));top.addView(brand,brandLayout);add(root,top);
@@ -161,7 +161,7 @@ public class MainActivity extends Activity {
   restoreScroll();
  }
  void period(){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);Button prev=button("‹",v->{anchor=start().minusDays(1);draw();});prev.setContentDescription("Previous reward period");row.addView(prev,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView t=text(start().format(DateTimeFormatter.ofPattern("d MMM"))+" — "+end().format(DateTimeFormatter.ofPattern("d MMM yyyy")),15,INK,true);t.setGravity(Gravity.CENTER);row.addView(t,new LinearLayout.LayoutParams(0,-2,1));Button next=button("›",v->{anchor=end().plusDays(1);draw();});next.setContentDescription("Next reward period");row.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));add(body,row);TextView mode=text(day()==0?"Calendar month" : "Statement period · closes on day "+day(),12,MUTED,false);mode.setGravity(Gravity.CENTER);add(body,mode);gap(body,16);}
- // the figures and every rate in the wording come from this card's reward plan. With
+ // The figures and every rate in the wording come from this card's reward plan. With
  // the HSBC Live+ preset they are Engine.totals' own numbers, which RewardsTest checks.
  void overview(){
   List<Engine.Tx> rows=store.all();Rewards.Totals t=Rewards.totals(rows,start(),end(),plan);
@@ -209,7 +209,7 @@ public class MainActivity extends Activity {
  String label(int category){String[] labels=plan.labels();return category>=0&&category<labels.length?labels[category]:RewardPlan.UNKNOWN;}
  void metric(LinearLayout l,String label,String value){LinearLayout r=new LinearLayout(this);r.setPadding(0,dp(7),0,dp(7));r.addView(text(label,14,MUTED,false),new LinearLayout.LayoutParams(0,-2,1));r.addView(text(value,16,INK,true));add(l,r);}
  void cashbackMetric(LinearLayout parent,String label,long spend,long cashback){
-  // a points plan earns points here, not rupees.
+  // A points plan earns points here, not rupees.
   cashbackMetric(parent,label,spend,cashback,plan.pointsUnit()?"Estimated points":"Estimated cashback");
  }
  void cashbackMetric(LinearLayout parent,String label,long spend,long cashback,String cashbackLabel){
@@ -242,8 +242,13 @@ public class MainActivity extends Activity {
   if(count==0){LinearLayout c=card(body,SURFACE);add(c,text(reviewOnly?"All caught up":"A fresh start",24,INK,true));gap(c,8);add(c,text(reviewOnly?"No items need review in this period.":"There are no transactions in this period. You can add a purchase or paste a transaction alert.",14,MUTED,false));}
 
  }
- EditText input(LinearLayout l,String label,String value,int type){add(l,text(label,13,MUTED,true));EditText e=new EditText(this);e.setText(value);e.setTextSize(16);e.setTextColor(INK);e.setInputType(type);e.setSingleLine(true);add(l,e);gap(l,10);return e;}
- LinearLayout dialogBody(){LinearLayout l=column();l.setPadding(dp(22),dp(10),dp(22),dp(10));return l;}
+ // A field is a quiet label over a filled, rounded well (the theme's LedgerField style).
+ EditText input(LinearLayout l,String label,String value,int type){
+  TextView caption=text(label,13,MUTED,false);caption.setPadding(dp(4),0,dp(4),dp(6));add(l,caption);
+  EditText e=new EditText(this);e.setText(value);e.setTextSize(16);e.setTextColor(INK);e.setHintTextColor(MUTED);e.setInputType(type);e.setSingleLine(true);
+  add(l,e);gap(l,14);return e;
+ }
+ LinearLayout dialogBody(){LinearLayout l=column();l.setPadding(dp(24),dp(6),dp(24),dp(6));return l;}
  ScrollView scrolled(LinearLayout l){ScrollView s=new ScrollView(this);s.addView(l);return s;}
  void dateInput(LinearLayout parent,LocalDate[] selected){
   add(parent,text("Date",13,MUTED,true));
@@ -264,12 +269,12 @@ public class MainActivity extends Activity {
  }
  void edit(Engine.Tx old){
   boolean fresh=old==null;Rows.Row x=Rows.asRow(fresh?new Rows.Row():old);LinearLayout l=dialogBody();
-  // the same dialog records money paid to the card, which earns nothing.
+  // The same dialog records money paid to the card, which earns nothing.
   CheckBox paid=new CheckBox(this);paid.setText("Money paid to the card, not spent");paid.setChecked(x.credit);add(l,paid);
   EditText merchant=input(l,"Merchant",fresh?"":x.merchant,1);EditText amount=input(l,"Amount in ₹",fresh?"":BigDecimalValue(x.amount),8194);LocalDate[] selectedDate={fresh?LocalDate.now(ZoneId.of("Asia/Kolkata")):LocalDate.parse(x.date)};dateInput(l,selectedDate);
   add(l,text("Reward category",13,MUTED,true));Spinner cat=new Spinner(this);cat.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,plan.labels()));cat.setSelection(Math.max(0,Math.min(x.category,plan.count()-1)));add(l,cat);gap(l,8);add(l,text("Choose based on the bank’s merchant category, not the item purchased.",12,MUTED,false));
   CheckBox learn=new CheckBox(this);learn.setText("Remember this merchant’s category");learn.setChecked(x.category!=0&&store.rule(x.merchant)==x.category);add(l,learn);
-  // a credit can name the category it reverses, which takes that category's reward
+  // A credit can name the category it reverses, which takes that category's reward
   // back. Left on the first entry, it is a bill payment and changes nothing.
   String[] creditLabels=plan.labels();creditLabels[0]="Not a reversal · a bill payment";
   TextView creditHint=text("Pick the category this credit reverses to take its "+(plan.pointsUnit()?"points":"cashback")+" back. A bill payment changes nothing.",12,MUTED,false);
@@ -302,7 +307,7 @@ public class MainActivity extends Activity {
   Spinner pick=new Spinner(this);pick.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels.isEmpty()?new String[]{"No matching purchase"}:labels.toArray(new String[0])));add(l,pick);
   new AlertDialog.Builder(this).setTitle("Review refund").setView(scrolled(l)).setPositiveButton("Link",(d,w)->{if(options.isEmpty()){toast("Add the original purchase first.");return;}refund.linked=""+options.get(pick.getSelectedItemPosition()).id;refund.confirmed=true;store.save(refund);draw();}).setNegativeButton("Close",null).setNeutralButton("More",(d,w)->new AlertDialog.Builder(this).setItems(new String[]{"Unlink refund","Delete this alert"},(a,i)->{if(i==0){refund.linked="";refund.confirmed=false;}else refund.active=false;store.save(refund);draw();}).show()).show();
  }
- // the pasted alert is read for this card's bank and suffix, through the same gate
+ // The pasted alert is read for this card's bank and suffix, through the same gate
  // the automatic router uses.
  void paste(){LinearLayout l=dialogBody();add(l,text("Paste one "+card.issuer+" purchase or refund alert. OTPs are rejected. Alert text is parsed on this phone and is not saved.",14,MUTED,false));EditText e=new EditText(this);e.setHint(card.issuer+" transaction alert");e.setMinLines(4);e.setGravity(Gravity.TOP);add(l,e);AlertDialog dlg=new AlertDialog.Builder(this).setTitle("Import one alert").setView(scrolled(l)).setPositiveButton("Preview",null).setNegativeButton("Cancel",null).create();dlg.setOnShowListener(v->dlg.getButton(-1).setOnClickListener(w->{String pasted=e.getText().toString();boolean[] paidIn={false};Engine.Parsed a=Alerts.parse("",pasted,p.getString("last4",""),System.currentTimeMillis(),card.issuer);
    if(a==null){Credits.Posted posted=Credits.parse("",pasted,p.getString("last4",""),System.currentTimeMillis());if(posted!=null){a=Alerts.asTransaction(posted);paidIn[0]=true;}}
@@ -347,7 +352,7 @@ public class MainActivity extends Activity {
   add(appearance,text(Palette.of(this,darkMode).dynamic?"Colours follow your wallpaper, as Android sets them.":"Colours follow the app's own scheme on this version of Android.",12,MUTED,false));
 
  }
- // one card's own settings. Everything the device holds once — capture, the SMS app,
+ // One card's own settings. Everything the device holds once — capture, the SMS app,
  // the theme — moved to deviceSettings() below, reached from the card grid.
  void settings(){
   boolean capped=!RewardPlan.CAP_NONE.equals(plan.capBasis);
@@ -355,10 +360,6 @@ public class MainActivity extends Activity {
   EditText day=input(c,"Statement closing day (1–31), or 0 for calendar month",""+day(),2);add(c,text("Choose the period in your card’s terms. Enter the statement closing day, not the payment due date. Dates near the boundary may post in the following period. you can edit them in Activity.",12,MUTED,false));gap(c,10);
   EditText limit=capped?input(c,(plan.pointsUnit()?"Reward points cap":"Accelerated cashback cap in ₹"),BigDecimalValue(cap()),8194):null;
   watchSetting(last,()->saveLastFour(last));watchSetting(day,()->saveDay(day));if(limit!=null)watchSetting(limit,()->saveCap(limit));
-  if(Cards.usesBuiltInCategories(plan)){
-   CheckBox promo=new CheckBox(this);promo.setText("Past Myntra offer · 31 Jul–31 Oct 2026");promo.setChecked(p.getBoolean("myntra",false));add(c,promo);add(c,text("For purchases in that date range only. Off by default. shares the accelerated cap.",12,MUTED,false));
-   promo.setOnCheckedChangeListener((view,checked)->p.edit().putBoolean("myntra",checked).apply());
-  }
   LinearLayout rewards=card(body,SURFACE);add(rewards,text("Reward plan",23,INK,true));gap(rewards,8);
   add(rewards,text(planSummary(),13,MUTED,false));gap(rewards,8);
   add(rewards,button("Edit reward plan",v->new PlanEditor(this).open()));
@@ -376,7 +377,7 @@ public class MainActivity extends Activity {
   LinearLayout data=card(body,SURFACE);add(data,text("Your data",23,INK,true));gap(data,8);add(data,text("This card's ledger is stored in this app’s private storage. Uninstalling removes it. Export a backup before reinstalling or changing phones. Backups contain financial data. store them privately.",13,MUTED,false));add(data,button("Export backup (JSON)",v->export()));add(data,button("Restore backup",v->restore()));add(data,button("Erase this card's ledger",v->new AlertDialog.Builder(this).setTitle("Erase this ledger?").setMessage("This removes every transaction, merchant rule and setting for "+card.name+". Other cards are untouched. Export a backup first if you need it.").setNegativeButton("Cancel",null).setPositiveButton("Erase",(a,b)->{store.wipe();p.edit().clear().apply();Cards.savePlan(this,cardId,plan);scrollPositions.clear();toast("This card's ledger was erased");recreate();}).show()));
   LinearLayout rules=card(body,SURFACE);add(rules,text("Reward rules & limits",21,INK,true));gap(rules,8);
   if(Cards.usesBuiltInCategories(plan)){
-   add(rules,text("Rules checked 3 Nov 2026: 10% up to ₹1,200 per month on eligible dining, grocery, shopping and utilities. most other eligible spends earn 1.5%. Amazon, Flipkart and Myntra shopping earn 1.5%. The Myntra 10% offer ended 31 Oct 2026. the option above applies only to historical purchases. Fuel and several other merchant codes are excluded. International transactions should be marked excluded.\n\nUnknown categories are left out of estimates. Suggested categories are provisional. Accelerated spend beyond the cap earns no additional cashback in this estimate. Refunds require linking. The estimate does not predict exact bank rounding, delayed posting, cross-period clawbacks, fee-waiver eligibility or welcome offers.\n\nChanging period or cap applies to all displayed history. Check your statement and amend categories or dates when necessary.",13,MUTED,false));
+   add(rules,text("Rules checked 3 Nov 2026: 10% up to ₹1,200 per month on eligible dining, grocery, shopping and utilities. Most other eligible spends earn 1.5%. Amazon, Flipkart and Myntra shopping earn 1.5%. Fuel and several other merchant codes are excluded. International transactions should be marked excluded.\n\nUnknown categories are left out of estimates. Suggested categories are provisional. Accelerated spend beyond the cap earns no additional cashback in this estimate. Refunds require linking. The estimate does not predict exact bank rounding, delayed posting, cross-period clawbacks, fee-waiver eligibility or welcome offers.\n\nChanging period or cap applies to all displayed history. Check your statement and amend categories or dates when necessary.",13,MUTED,false));
    add(rules,button("Open HSBC service guide",v->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.hsbc.bank.in/content/dam/hsbc/in/documents/credit-cards/live-plus-credit-card-services-guide.pdf")))));
   }else{
    add(rules,text("This card uses the reward plan you entered above, so check it against your own card terms. Merchant suggestions from the built-in catalogue apply to the HSBC Live+ plan only; on this card, categories come from your own merchant mappings until you set one.\n\nUnknown categories are left out of estimates. Refunds require linking. The estimate does not predict exact bank rounding, delayed posting, cross-period clawbacks, fee waivers or welcome offers.\n\nChanging the period, cap or rates applies to all displayed history.",13,MUTED,false));
@@ -402,8 +403,8 @@ public class MainActivity extends Activity {
    Cards.save(this,book);card=book.get(cardId);issuer.setError(null);return true;
   }catch(IllegalArgumentException error){issuer.setError(error.getMessage());return false;}
  }
- /** upstream's device-wide settings, reached from the card grid rather than from one
-  * card's own screen. The blocks below are upstream's, moved rather than rewritten. */
+ /** The device-wide settings, reached from the card grid rather than from one card's own
+  * screen. */
  void deviceSettings(){
   LinearLayout capture=card(body,SURFACE);add(capture,text("Automatic capture",23,INK,true));gap(capture,8);
   add(capture,text(CaptureMode.SMS?"Capture new transaction SMS for your cards. Existing messages are never read.":"Capture transaction notifications from one SMS messaging app. Existing messages are never read.",13,MUTED,false));
@@ -434,7 +435,7 @@ public class MainActivity extends Activity {
   add(everything,button("Back up everything",v->backupEverything()));
   add(everything,button("Restore everything",v->restoreEverything()));
   LinearLayout about=card(body,SURFACE);add(about,text("About",23,INK,true));gap(about,8);
-  add(about,text("Cards Ledger "+appVersion()+"\nA multi-card fork of Live+ Ledger. Independent personal tracker, not affiliated with any bank.\n\nEach card keeps its own ledger, merchant mappings and reward plan on this phone. The app has no internet permission.",13,MUTED,false));
+  add(about,text("Cards Ledger "+appVersion()+"\nTrack spending and rewards across your credit cards. Independent, and not affiliated with any bank.\n\nEach card keeps its own ledger, merchant mappings and reward plan on this phone. The app has no internet permission.",13,MUTED,false));
  }
  String sourceNames(){
   if(selectedPackages.isEmpty())return "No SMS messaging app selected";
@@ -466,9 +467,9 @@ public class MainActivity extends Activity {
  boolean saveCap(EditText field){
   try{long amount=SettingsValues.cap(field.getText().toString());p.edit().putLong("cap",amount).apply();field.setError(null);return true;}catch(IllegalArgumentException error){field.setError(error.getMessage());return false;}
  }
- // capture may start as soon as any card is set up.
+ // Capture may start as soon as any card is set up.
  boolean savedCardReady(){return Cards.anyReady(this);}
- // capture is one device-wide switch shared by every card.
+ // Capture is one device-wide switch shared by every card.
  void startCapture(){g.edit().putBoolean("capture",true).putBoolean("captureError",false).putString("captureEdition",CaptureMode.ID).putLong("started",System.currentTimeMillis()).apply();CaptureMode.enabled();}
  void chooseSources(TextView display){
   Map<String,String> apps=SmsApps.installed(this);
@@ -480,15 +481,15 @@ public class MainActivity extends Activity {
    selectedPackages=next;g.edit().putStringSet("packages",new HashSet<>(next)).apply();display.setText(sourceNames());if(changed&&g.getBoolean("capture",false)&&access())startCapture();dialog.dismiss();
   }).setNegativeButton("Close",null).show();
  }
- void openAppSettings(){try{startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));}catch(Exception ignored){toast("Open Android Settings → Apps → Live+ Ledger.");}}
+ void openAppSettings(){try{startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));}catch(Exception ignored){toast("Open Android Settings → Apps → Cards Ledger.");}}
  void requestNotificationAccess(boolean enableAfterGrant){
   pendingNotificationEnable=enableAfterGrant;
-  new AlertDialog.Builder(this).setTitle("Allow notification access").setMessage("Live+ Ledger checks transaction alerts from your selected SMS app. Android grants broad notification access. Unrelated alerts and OTPs are ignored locally. You can revoke access at any time.\n\nFor a sideloaded app, Android may require App info → ⋮ → Allow restricted settings first.").setNegativeButton("Cancel",(dialog,which)->pendingNotificationEnable=false).setOnCancelListener(dialog->pendingNotificationEnable=false).setPositiveButton("Open settings",(dialog,which)->{try{startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));}catch(Exception ignored){pendingNotificationEnable=false;toast("Open Android Settings → Notification access.");}}).show();
+  new AlertDialog.Builder(this).setTitle("Allow notification access").setMessage("Cards Ledger checks transaction alerts from your selected SMS app. Android grants broad notification access. Unrelated alerts and OTPs are ignored locally. You can revoke access at any time.\n\nFor a sideloaded app, Android may require App info → ⋮ → Allow restricted settings first.").setNegativeButton("Cancel",(dialog,which)->pendingNotificationEnable=false).setOnCancelListener(dialog->pendingNotificationEnable=false).setPositiveButton("Open settings",(dialog,which)->{try{startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));}catch(Exception ignored){pendingNotificationEnable=false;toast("Open Android Settings → Notification access.");}}).show();
  }
  void requestSmsAccess(boolean enableAfterGrant){
   if(!CaptureMode.SMS)return;
   pendingSmsEnable=enableAfterGrant;
-  new AlertDialog.Builder(this).setTitle("Allow new SMS capture?").setMessage("Android grants access to new incoming SMS from all senders. Live+ Ledger checks for HSBC and your card suffix, ignores OTPs and unrelated messages, and stores transaction details locally.\n\nExisting messages are never read. The app cannot send SMS and has no internet permission. You can revoke SMS access in Android Settings.").setNegativeButton("Not now",(dialog,which)->pendingSmsEnable=false).setOnCancelListener(dialog->pendingSmsEnable=false).setPositiveButton("Continue",(dialog,which)->requestPermissions(new String[]{"android.permission.RECEIVE_SMS"},73)).show();
+  new AlertDialog.Builder(this).setTitle("Allow new SMS capture?").setMessage("Android grants access to new incoming SMS from all senders. Cards Ledger keeps only messages that name one of your cards' banks and end in its four digits, ignores OTPs and everything else, and stores the transaction details on this phone.\n\nExisting messages are never read. The app cannot send SMS and has no internet permission. You can revoke SMS access in Android Settings.").setNegativeButton("Not now",(dialog,which)->pendingSmsEnable=false).setOnCancelListener(dialog->pendingSmsEnable=false).setPositiveButton("Continue",(dialog,which)->requestPermissions(new String[]{"android.permission.RECEIVE_SMS"},73)).show();
  }
  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){
   super.onRequestPermissionsResult(request,permissions,results);if(request!=73||!CaptureMode.SMS)return;
@@ -542,7 +543,7 @@ public class MainActivity extends Activity {
  }
  /** Leaving a card slides back toward the grid. */
  @Override public void finish(){super.finish();overridePendingTransition(R.anim.enter_back,R.anim.exit_back);}
- // the whole device in one file, so an uninstall is recoverable.
+ // The whole device in one file, so an uninstall is recoverable.
  void backupEverything(){
   startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE)
    .putExtra(Intent.EXTRA_TITLE,"cards-ledger-"+LocalDate.now(ZoneId.of("Asia/Kolkata"))+".json"),51);
@@ -557,7 +558,7 @@ public class MainActivity extends Activity {
  void export(){Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"cards-ledger-"+(card==null?"card":card.name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+","-"))+"-"+LocalDate.now()+".json");startActivityForResult(i,41);}
  void restore(){new AlertDialog.Builder(this).setTitle("Restore a backup").setMessage("Restore is available into an empty ledger. It restores transactions and settings. Capture stays off until you enable it again.").setNegativeButton("Cancel",null).setPositiveButton("Choose file",(d,w)->{if(!store.all().isEmpty()){toast("Export and erase existing data first.");return;}startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),42);}).show();}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;try{
-  // 51 and 52 are the whole-device backup; 41 and 42 below are upstream's, one card.
+  // 51 and 52 are the whole-device backup; 41 and 42 below back up one card.
   if(req==51){
    String text=Vault.encode(Cards.snapshot(this));
    try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(text.getBytes(StandardCharsets.UTF_8));}
@@ -575,8 +576,8 @@ public class MainActivity extends Activity {
    startActivity(new Intent(this,HomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
    finish();return;
   }
-  if(req==41){JSONObject o=new JSONObject();o.put("format","liveplus-ledger-v1");o.put("last4",p.getString("last4",""));o.put("day",day());o.put("cap",cap());o.put("periodSet",p.getBoolean("periodSet",false));o.put("myntra",p.getBoolean("myntra",false));o.put("transactions",store.exportRows());try(OutputStream s=getContentResolver().openOutputStream(data.getData())){s.write(o.toString(2).getBytes(StandardCharsets.UTF_8));}toast("Backup exported");}
-  else if(req==42){if(!store.all().isEmpty())throw new Exception("Ledger must be empty");ByteArrayOutputStream buffer=new ByteArrayOutputStream();try(InputStream in=getContentResolver().openInputStream(data.getData())){byte[] chunk=new byte[8192];int n;while((n=in.read(chunk))!=-1){buffer.write(chunk,0,n);if(buffer.size()>10_000_000)throw new Exception("File too large");}}JSONObject o=new JSONObject(buffer.toString("UTF-8"));if(!o.getString("format").equals("liveplus-ledger-v1"))throw new Exception("Wrong format");JSONArray a=o.getJSONArray("transactions");if(a.length()>20000)throw new Exception("Too many rows");String four=o.getString("last4");int close=o.getInt("day");long max=o.getLong("cap");if(!four.matches("[0-9]{4}")||close<0||close>31||max<=0||max>10000000L)throw new Exception("Invalid settings");
+  if(req==41){JSONObject o=new JSONObject();o.put("format","cards-ledger-card-v1");o.put("last4",p.getString("last4",""));o.put("day",day());o.put("cap",cap());o.put("periodSet",p.getBoolean("periodSet",false));o.put("myntra",p.getBoolean("myntra",false));o.put("transactions",store.exportRows());try(OutputStream s=getContentResolver().openOutputStream(data.getData())){s.write(o.toString(2).getBytes(StandardCharsets.UTF_8));}toast("Backup exported");}
+  else if(req==42){if(!store.all().isEmpty())throw new Exception("Ledger must be empty");ByteArrayOutputStream buffer=new ByteArrayOutputStream();try(InputStream in=getContentResolver().openInputStream(data.getData())){byte[] chunk=new byte[8192];int n;while((n=in.read(chunk))!=-1){buffer.write(chunk,0,n);if(buffer.size()>10_000_000)throw new Exception("File too large");}}JSONObject o=new JSONObject(buffer.toString("UTF-8"));String format=o.getString("format");if(!format.equals("cards-ledger-card-v1")&&!format.equals("liveplus-ledger-v1"))throw new Exception("This is not a card backup");JSONArray a=o.getJSONArray("transactions");if(a.length()>20000)throw new Exception("Too many rows");String four=o.getString("last4");int close=o.getInt("day");long max=o.getLong("cap");if(!four.matches("[0-9]{4}")||close<0||close>31||max<=0||max>10000000L)throw new Exception("Invalid settings");
    List<Engine.Tx> rows=new ArrayList<>();Set<Long> ids=new HashSet<>();Set<String> events=new HashSet<>();for(int i=0;i<a.length();i++){JSONObject v=a.getJSONObject(i);Rows.Row x=new Rows.Row();x.credit=v.optBoolean("credit",false);x.id=v.getLong("id");x.amount=v.getLong("amountPaise");x.merchant=v.getString("merchant");x.date=LocalDate.parse(v.getString("date")).toString();x.category=v.getInt("category");x.confirmed=v.getBoolean("confirmed");x.refund=v.getBoolean("refund");x.duplicate=v.getBoolean("duplicate");x.active=v.getBoolean("active");x.received=v.getLong("received");x.source=v.getString("source");x.event=v.optString("event","");x.linked=v.optString("linked","");if(x.id<=0||!ids.add(x.id)||x.amount<=0||x.amount>1000000000L||x.category<0||x.category>RewardPlan.MAX_CATEGORIES||x.merchant.length()>90||x.source.length()>100||(!x.event.isEmpty()&&!events.add(x.event)))throw new Exception("Invalid transaction");rows.add(x);}
    for(Engine.Tx x:rows)if(!x.linked.isEmpty()){Engine.Tx original=null;for(Engine.Tx q:rows)if(x.linked.equals(""+q.id)&&q.active&&!q.refund)original=q;if(!x.refund||original==null)throw new Exception("Invalid refund link");long refunds=0;for(Engine.Tx r:rows)if(r.active&&r.refund&&r.linked.equals(x.linked))refunds+=r.amount;if(refunds>original.amount)throw new Exception("Refund exceeds purchase");}
    android.database.sqlite.SQLiteDatabase db=store.getWritableDatabase();db.beginTransaction();try{for(Engine.Tx x:rows){ContentValues values=new ContentValues();values.put("id",x.id);values.put("amount",x.amount);values.put("merchant",x.merchant);values.put("date",x.date);values.put("category",x.category);values.put("confirmed",x.confirmed?1:0);values.put("refund",x.refund?1:0);values.put("duplicate",x.duplicate?1:0);values.put("active",x.active?1:0);values.put("received",x.received);values.put("source",x.source);values.put("linked",x.linked);values.put("credit",Rows.credit(x)?1:0);if(!x.event.isEmpty())values.put("event",x.event);db.insertOrThrow("tx",null,values);}db.setTransactionSuccessful();}finally{db.endTransaction();}

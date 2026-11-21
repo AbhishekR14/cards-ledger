@@ -13,7 +13,7 @@ import java.util.*;
  *
  * <p>Categories that share a rate, cap flag and rounding form one bucket, and the rate is applied
  * once to the bucket total. That is what keeps four categories at 10% rounding identically to
- * upstream's single {@code accelerated/10}.
+ * Engine's single {@code accelerated/10}.
  */
 public final class Rewards {
  /** One rendered row: a bucket of categories paying at the same rate. */
@@ -125,11 +125,11 @@ public final class Rewards {
  /**
   * The reward a bucket earns on {@code spend}, in paise or points.
   *
-  * <p>Rounding mirrors upstream rather than improving on it: {@code floor} truncates, as
+  * <p>Rounding mirrors Engine rather than improving on it: {@code floor} truncates, as
   * {@code Engine.totals} does for accelerated cashback with its {@code accelerated/10}, and
-  * {@code round} goes through the same {@code Math.round(spend*rate)} double that upstream uses
-  * for the base rate. Reproducing that exactly is what lets the Live+ tile's figures agree with
-  * upstream to the paise.
+  * {@code round} goes through the same {@code Math.round(spend*rate)} double that Engine uses
+  * for the base rate. Reproducing that exactly is what lets the HSBC Live+ tile's figures agree with
+  * Engine to the paise.
   */
  public static long earn(RewardPlan.Category category,long spend){
   if(spend<=0)return 0;
@@ -141,7 +141,7 @@ public final class Rewards {
   return category.round?Math.round(spend*(category.rateBps/10000.0)):spend*category.rateBps/10000;
  }
 
- /** Upstream's wording for the three HSBC buckets, generalised to any rate. */
+ /** Engine's wording for the three HSBC buckets, generalised to any rate. */
  public static String label(RewardPlan.Category category){
   if(category.pointsBased())return "Spend earning "+category.points+(category.points==1?" pt":" pts")+" per "+RewardPlan.rupees(category.blockPaise);
   if(category.rateBps<=0)return "Excluded spend · 0%";

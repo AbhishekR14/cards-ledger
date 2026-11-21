@@ -9,9 +9,9 @@ public class CardBookTest {
   throw new AssertionError("accepted "+name);
  }
  public static int run(){
-  // Card 1 keeps upstream's file names, so a single-card install needs no migration.
-  check(CardBook.database(1).equals("ledger.db"),"the first card keeps upstream's database");
-  check(CardBook.preferences(1).equals("settings"),"the first card keeps upstream's preferences");
+  // Card 1 keeps the original file names, so an existing ledger needs no migration.
+  check(CardBook.database(1).equals("ledger.db"),"the first card keeps the original database name");
+  check(CardBook.preferences(1).equals("settings"),"the first card keeps the original preferences name");
   check(CardBook.database(2).equals("ledger-2.db"),"later cards get their own database");
   check(CardBook.preferences(7).equals("settings-7"),"later cards get their own preferences");
 

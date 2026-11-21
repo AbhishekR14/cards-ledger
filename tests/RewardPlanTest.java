@@ -13,9 +13,9 @@ public class RewardPlanTest {
  public static int run(){
   RewardPlan hsbc=RewardPlan.hsbcLivePlus();
 
-  // The Live+ tile must keep showing upstream's own category wording and indices.
+  // The HSBC Live+ preset must keep Engine's category wording and indices.
   check(Arrays.equals(hsbc.labels(),Engine.CATEGORIES),"the HSBC preset reproduces Engine.CATEGORIES exactly");
-  check(hsbc.count()==Engine.CATEGORIES.length,"the preset has upstream's category count");
+  check(hsbc.count()==Engine.CATEGORIES.length,"the preset has Engine's category count");
   check(hsbc.category(0)==null,"index 0 stays the unknown sentinel");
   check(hsbc.category(1).capped&&hsbc.category(4).capped,"the four accelerated categories share the cap");
   check(!hsbc.category(5).capped&&!hsbc.category(6).capped,"base and excluded spend are outside the cap");
@@ -24,11 +24,11 @@ public class RewardPlanTest {
 
   // Built-in merchant suggestions follow the category list, since that is what their numbers
   // mean. Editing a rate or the cap keeps them; renaming or reshaping the list drops them.
-  check(hsbc.matchesBuiltInCategories(),"the preset matches upstream's categories");
+  check(hsbc.matchesBuiltInCategories(),"the preset matches Engine's categories");
   check(hsbc.withCap(50000).matchesBuiltInCategories(),"changing the cap keeps the built-in categories");
   check(RewardPlan.fromJson(hsbc.toJson()).matchesBuiltInCategories(),"a round trip keeps the built-in categories");
-  check(!RewardPlan.flatCashback().matchesBuiltInCategories(),"another plan does not claim upstream's categories");
-  check(!RewardPlan.rewardPoints().matchesBuiltInCategories(),"a points plan does not claim upstream's categories");
+  check(!RewardPlan.flatCashback().matchesBuiltInCategories(),"another plan does not claim Engine's categories");
+  check(!RewardPlan.rewardPoints().matchesBuiltInCategories(),"a points plan does not claim Engine's categories");
   List<RewardPlan.Category> renamed=new ArrayList<>(hsbc.categories);
   renamed.set(1,new RewardPlan.Category("Supermarkets",1000,true,false));
   check(!new RewardPlan(hsbc.id,hsbc.name,hsbc.unit,hsbc.capBasis,hsbc.capAmount,0,renamed).matchesBuiltInCategories(),

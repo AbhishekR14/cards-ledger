@@ -39,14 +39,14 @@ public final class Rows {
   return row;
  }
 
- /** Only the spending rows, for calculations and counts that upstream wrote for purchases. */
+ /** Only the spending rows, for calculations and counts written for purchases. */
  public static List<Engine.Tx> purchases(List<Engine.Tx> rows){
   List<Engine.Tx> out=new ArrayList<>();
   for(Engine.Tx row:rows)if(!credit(row))out.add(row);
   return out;
  }
  /**
-  * True when a row still wants a look. A purchase follows upstream's rule. A credit only does
+  * True when a row still wants a look. A purchase follows Engine's rule. A credit only does
   * when the category it reverses was suggested rather than chosen, because a wrong suggestion
   * would take a reward back that was never lost.
   */

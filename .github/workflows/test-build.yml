@@ -1,10 +1,8 @@
 name: Test build APKs
 
-# Builds the SMS edition on a Windows runner and publishes it as a prerelease you can install
-# from your phone. No repository secrets are needed: build.ps1 generates a personal signing key
-# when none is present, so every run signs with a new key. Releasing properly is release.yml,
-# which needs a retained key. Upstream's notification edition still builds locally with
-# ./build.ps1 -Edition notifications; this fork does not publish it.
+# Builds the SMS edition and publishes it as the test-build prerelease, for trying changes on a
+# phone before a release. It needs no secrets: build.ps1 generates a signing key for each run, so a
+# preview build does not install over a release or over another preview. Releases are release.yml.
 
 on:
   push:
@@ -80,7 +78,7 @@ jobs:
             '',
             '**This is a test build, not a release.** Every run of this workflow signs with a newly generated key, so a later test build will not install over this one. Uninstall the previous test build first, exporting a backup from each card beforehand if you want to keep its ledger.',
             '',
-            'It installs as in.local.cards, alongside an existing Live+ Ledger install rather than over it. Checksums are in SHA256SUMS.txt.'
+            'Checksums are in SHA256SUMS.txt.'
           )
           [IO.File]::WriteAllText((Join-Path $PWD 'build/NOTES.md'),($lines -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
           & gh release delete $tag --repo $env:GITHUB_REPOSITORY --yes --cleanup-tag 2>$null

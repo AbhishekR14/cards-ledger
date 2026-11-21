@@ -18,7 +18,7 @@ public class RewardsTest {
   Engine.Tx x=tx(id,amount,0,date);x.refund=true;x.linked=linked;x.confirmed=!linked.isEmpty();return x;
  }
 
- /** Every field the Overview screen reads must match upstream's own calculation. */
+ /** Every field the Overview screen reads must match Engine's own calculation. */
  static void parity(List<Engine.Tx> rows,long cap,String name){
   Engine.Totals expected=Engine.totals(rows,START,END,cap);
   Rewards.Totals actual=Rewards.totals(rows,START,END,RewardPlan.hsbcLivePlus().withCap(cap));
@@ -76,12 +76,12 @@ public class RewardsTest {
 
   // Several categories sharing a rate keep the generic wording; a lone category is named.
   check(shown.lines.size()==3,"the HSBC plan renders three buckets");
-  check(shown.lines.get(0).label.equals("Eligible spend at 10%"),"four categories at one rate keep upstream's label");
+  check(shown.lines.get(0).label.equals("Eligible spend at 10%"),"four categories at one rate keep Engine's label");
   check(shown.lines.get(1).label.equals("Other eligible · 1.5%"),"a lone category is named after itself");
   check(shown.lines.get(2).label.equals("Excluded · 0%"),"the excluded category is named after itself");
   check(shown.lines.get(0).capped&&!shown.lines.get(1).capped,"only the accelerated bucket is capped");
 
-  // Randomised ledgers: the real guard against an upstream rule change drifting from the preset.
+  // Randomised ledgers: the real guard against a change to Engine's rules drifting from the preset.
   Random random=new Random(20261121L);
   for(int round=0;round<400;round++){
    List<Engine.Tx> rows=new ArrayList<>();

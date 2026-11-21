@@ -5,10 +5,10 @@ import java.util.*;
 /**
  * One card's reward scheme: the categories it pays on, their rates, and the cap they share.
  *
- * <p>Category indices match the ledger's stored {@code category} column and upstream's convention:
+ * <p>Category indices match the ledger's stored {@code category} column and Engine's convention:
  * index 0 always means "Needs category" and is never paid on, so a plan's own list starts at index
  * 1. The HSBC Live+ preset reproduces {@link Engine#CATEGORIES} and {@link Engine#totals} exactly;
- * {@code RewardsTest} asserts that, so an upstream rule change surfaces as a test failure.
+ * {@code RewardsTest} asserts that, so a change to Engine's rules surfaces as a test failure.
  *
  * <p>Plain Java with no Android dependency, so the calculator can be unit tested.
  */
@@ -44,7 +44,7 @@ public final class RewardPlan {
    return name+" · "+percent(rateBps);
   }
   /** Groups categories that must be totalled together before their rate is applied, so that a
-   * plan with four categories at one rate rounds exactly once, as upstream does. */
+   * plan with four categories at one rate rounds exactly once, as Engine does. */
   String bucket(){return rateBps+"/"+points+"/"+blockPaise+"/"+(capped?"c":"u")+"/"+(round?"r":"f")+"/"+ceiling;}
  }
 
@@ -113,7 +113,7 @@ public final class RewardPlan {
  public RewardPlan withName(String newName){return new RewardPlan(id,newName,unit,capBasis,capAmount,pointValuePaise,categories);}
  public boolean pointsUnit(){return UNIT_POINTS.equals(unit);}
  /**
-  * True when this plan's categories are still upstream's, in upstream's order, so the built-in
+  * True when this plan's categories are still Engine's, in Engine's order, so the built-in
   * merchant catalogue's category numbers mean here what they mean there. Rates, caps and the
   * reward unit may differ: they do not change what a category <em>is</em>.
   */
@@ -226,8 +226,8 @@ public final class RewardPlan {
  // ---- Presets -------------------------------------------------------------
 
  /** Mirrors {@link Engine#CATEGORIES} and the cashback maths in {@link Engine#totals}. The four
-  * accelerated categories share one bucket and truncate, exactly as upstream's {@code /10} does;
-  * the base rate rounds, as upstream's {@code Math.round} does. */
+  * accelerated categories share one bucket and truncate, exactly as Engine's {@code /10} does;
+  * the base rate rounds, as Engine's {@code Math.round} does. */
  public static RewardPlan hsbcLivePlus(){
   List<Category> categories=new ArrayList<>();
   categories.add(new Category("Dining / food delivery",1000,true,false));
@@ -268,7 +268,7 @@ public final class RewardPlan {
  /**
   * Plans for the cards this app's author carries. Rates were read from the issuers' own pages on
   * 21 November 2026 and the terms move often, so a card's Settings screen is the authority: check
-  * the plan against your own statement and edit it there. docs/MULTI-CARD.md records what is
+  * the plan against your own statement and edit it there. docs/USER-GUIDE.md records what is
   * solid and what is not.
   */
  public static RewardPlan amazonPayIcici(){

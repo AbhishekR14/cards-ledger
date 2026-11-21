@@ -1,5 +1,10 @@
 name: Build and publish APK release
 
+# Pushing a tag such as v1.0.0 builds, verifies and publishes the SMS edition as a GitHub release.
+# With the ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD secrets set, every release is
+# signed with that retained key, so each one installs over the last. Without them the release is
+# signed with a key generated for this run, and its notes say so. See docs/RELEASING.md.
+
 on:
   push:
     tags: ['v*']
@@ -26,66 +31,68 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Validate tag, version and signing configuration
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      - name: Check the tag against the app version
         run: |
           $ErrorActionPreference = 'Stop'
-          if ($env:GITHUB_REF_NAME -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') { throw 'Use a version tag such as v1.0.0 or v1.0.0-beta.1.' }
-          if (!$env:KEYSTORE_BASE64 -or !$env:KEYSTORE_PASSWORD) { throw 'Set ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD repository secrets first. The release must use the retained signing key.' }
+          if ($env:GITHUB_REF_NAME -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') { throw 'Use a version tag such as v1.0.0 or v1.1.0-beta.1.' }
           [xml]$manifest = Get-Content -LiteralPath 'app/src/main/AndroidManifest.xml' -Raw
           $version = $manifest.manifest.GetAttribute('versionName','http://schemas.android.com/apk/res/android')
-          $parts = @($version.Split('.'))
-          while ($parts.Count -lt 3) { $parts += '0' }
           $baseTag = ($env:GITHUB_REF_NAME.Substring(1) -split '-',2)[0]
-          if (($parts -join '.') -ne $baseTag) { throw "Tag base $baseTag does not match manifest version $version." }
-      - name: Ensure Android platform and build tools
+          if ($version -ne $baseTag) { throw "Tag $env:GITHUB_REF_NAME does not match the manifest's version $version." }
+          "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Install the Android platform and build tools
         run: |
           $ErrorActionPreference = 'Stop'
           $sdk = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { $env:ANDROID_HOME }
-          if (!$sdk) { throw 'Android SDK not found on the Windows runner.' }
+          if (!$sdk) { throw 'Android SDK not found on the runner.' }
           $manager = Get-ChildItem -LiteralPath "$sdk/cmdline-tools" -Filter 'sdkmanager.bat' -Recurse | Select-Object -First 1
           if (!$manager) { throw 'sdkmanager.bat is missing.' }
           & $manager.FullName 'platforms;android-35' 'build-tools;35.0.0'
           if ($LASTEXITCODE -ne 0) { throw 'Android SDK package installation failed.' }
           "ANDROID_SDK_ROOT=$sdk" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Restore private signing material
+      - name: Prepare the signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Force -Path '.signing' | Out-Null
-          [IO.File]::WriteAllBytes((Join-Path $PWD '.signing/personal-release.p12'),[Convert]::FromBase64String($env:KEYSTORE_BASE64))
-          [IO.File]::WriteAllText((Join-Path $PWD '.signing/key-password.txt'),$env:KEYSTORE_PASSWORD,[Text.UTF8Encoding]::new($false))
-      - name: Build, test and verify both APK editions
-        run: ./tools/build-all.ps1
-      - name: Verify release signing identity and make checksum
+          if ($env:KEYSTORE_BASE64 -and $env:KEYSTORE_PASSWORD) {
+            New-Item -ItemType Directory -Force -Path '.signing' | Out-Null
+            [IO.File]::WriteAllBytes((Join-Path $PWD '.signing/personal-release.p12'),[Convert]::FromBase64String($env:KEYSTORE_BASE64))
+            [IO.File]::WriteAllText((Join-Path $PWD '.signing/key-password.txt'),$env:KEYSTORE_PASSWORD,[Text.UTF8Encoding]::new($false))
+            'SIGNING=retained' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            Write-Warning 'No release key in the repository secrets: this release is signed with a key generated for this run.'
+            'SIGNING=generated' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+      - name: Build, test and verify the APK
         run: |
           $ErrorActionPreference = 'Stop'
-          $expected = (Get-Content -LiteralPath 'docs/RELEASE_SIGNING_CERTIFICATE.txt' -Raw).Trim().ToLowerInvariant()
-          $assets = @('Cards-Ledger-Notifications.apk','Cards-Ledger-SMS.apk')
-          $checksums = foreach ($asset in $assets) {
-            $apk = Join-Path 'build' $asset
-            $certs = & "$env:JAVA_HOME/bin/java.exe" -jar "$env:ANDROID_SDK_ROOT/build-tools/35.0.0/lib/apksigner.jar" verify --print-certs $apk
-            if ($LASTEXITCODE -ne 0) { throw "APK signature verification failed: $asset" }
-            $match = [regex]::Match(($certs -join [Environment]::NewLine),'Signer #1 certificate SHA-256 digest:\s*([a-fA-F0-9]{64})')
-            if (!$match.Success -or $match.Groups[1].Value.ToLowerInvariant() -ne $expected) { throw "Signing certificate mismatch: $asset" }
-            $hash = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $asset"
-          }
-          [IO.File]::WriteAllText((Join-Path $PWD 'build/SHA256SUMS.txt'),($checksums -join [Environment]::NewLine)+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
-      - name: Publish both editions and checksums
+          ./build.ps1 -Edition sms
+          $apk = 'build/Cards-Ledger-SMS.apk'
+          $certs = & "$env:JAVA_HOME/bin/java.exe" -jar "$env:ANDROID_SDK_ROOT/build-tools/35.0.0/lib/apksigner.jar" verify --print-certs $apk
+          if ($LASTEXITCODE -ne 0) { throw 'APK signature verification failed.' }
+          $match = [regex]::Match(($certs -join [Environment]::NewLine),'Signer #1 certificate SHA-256 digest:\s*([a-fA-F0-9]{64})')
+          if (!$match.Success) { throw 'Could not read the signing certificate.' }
+          "CERT_SHA256=$($match.Groups[1].Value.ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $hash = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText((Join-Path $PWD 'build/SHA256SUMS.txt'),"$hash  Cards-Ledger-SMS.apk"+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
+      - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $releaseArgs = @('release','create',$env:GITHUB_REF_NAME,'build/Cards-Ledger-Notifications.apk','build/Cards-Ledger-SMS.apk','build/SHA256SUMS.txt','--repo',$env:GITHUB_REPOSITORY,'--verify-tag','--title',"Cards Ledger $env:GITHUB_REF_NAME",'--notes-file','.github/RELEASE_NOTES.md','--generate-notes')
-          if ($env:GITHUB_REF_NAME.Contains('-')) { $releaseArgs += '--prerelease' }
+          $notes = [IO.File]::ReadAllText((Join-Path $PWD '.github/RELEASE_NOTES.md'))
+          $lines = @('', '---', '', "Signing certificate SHA-256: ``$env:CERT_SHA256``")
+          if ($env:SIGNING -eq 'generated') {
+            $lines += ''
+            $lines += 'This release is signed with a key generated for it. A later release signed with a different key will not install over it: back up from **Settings → Back up everything**, uninstall, install the new release and restore.'
+          }
+          [IO.File]::WriteAllText((Join-Path $PWD 'build/NOTES.md'),$notes+($lines -join [Environment]::NewLine)+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
+          $releaseArgs = @('release','create',$env:GITHUB_REF_NAME,'build/Cards-Ledger-SMS.apk','build/SHA256SUMS.txt','--repo',$env:GITHUB_REPOSITORY,'--verify-tag','--title',"Cards Ledger $env:APP_VERSION",'--notes-file','build/NOTES.md')
+          if ($env:GITHUB_REF_NAME.Contains('-')) { $releaseArgs += '--prerelease' } else { $releaseArgs += '--latest' }
           & gh @releaseArgs
-          if ($LASTEXITCODE -ne 0) { throw 'GitHub release creation failed. Check whether this tag already has a release before retrying.' }
-      - name: Remove private runner signing files
+          if ($LASTEXITCODE -ne 0) { throw 'Creating the GitHub release failed. Check whether this tag already has a release before retrying.' }
+      - name: Remove signing files
         if: always()
-        run: |
-          Remove-Item -LiteralPath '.signing/personal-release.p12','.signing/key-password.txt' -Force -ErrorAction SilentlyContinue
+        run: Remove-Item -LiteralPath '.signing/personal-release.p12','.signing/key-password.txt' -Force -ErrorAction SilentlyContinue

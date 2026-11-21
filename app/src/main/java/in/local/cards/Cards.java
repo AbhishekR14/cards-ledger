@@ -54,7 +54,7 @@ public final class Cards {
  public static void savePlan(Context context,int cardId,RewardPlan plan){
   prefs(context,cardId).edit().putString("plan",plan.toJson()).putLong("cap",plan.capAmount).apply();
  }
- /** True when the card's own suggestions may come from upstream's HSBC merchant catalogue, which
+ /** True when the card's own suggestions may come from the built-in HSBC merchant catalogue, which
   * returns that plan's category numbers. Rates and caps may differ; the categories may not. */
  public static boolean usesBuiltInCategories(RewardPlan plan){
   return plan.matchesBuiltInCategories();
@@ -123,7 +123,7 @@ public final class Cards {
  }
  /**
   * Replaces everything on this device with a backup: the cards, their ledgers, their mappings,
-  * their plans and the theme. Capture is left off until it is turned on again, as upstream's
+  * their plans and the theme. Capture is left off until it is turned on again, as a card's
   * own restore does.
   */
  public static void apply(Context context,Vault.Snapshot snapshot){

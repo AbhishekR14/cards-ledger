@@ -1,0 +1,68 @@
+<resources>
+  <!-- Android 12 and newer: the same themes, coloured from the system's wallpaper palette so
+       dialogs, fields, checkboxes and the launch window match what the app draws in code. -->
+  <style name="AppTheme.Light" parent="android:style/Theme.Material.Light.NoActionBar">
+    <item name="android:windowBackground">@android:color/system_neutral1_50</item>
+    <item name="android:colorBackground">@android:color/system_neutral1_50</item>
+    <item name="android:textColorPrimary">@android:color/system_neutral1_900</item>
+    <item name="android:textColorSecondary">@android:color/system_neutral2_700</item>
+    <item name="android:colorAccent">@android:color/system_accent1_600</item>
+    <item name="android:alertDialogTheme">@style/AppDialog.Light</item>
+    <item name="android:forceDarkAllowed">false</item>
+    <item name="android:windowLightStatusBar">true</item>
+    <item name="android:windowLightNavigationBar">true</item>
+    <item name="ledgerTabBackground">#FFFFFF</item>
+    <item name="ledgerTabBorder">#71858A</item>
+    <item name="ledgerSurface">#FFFFFF</item>
+    <item name="ledgerNotice">#FFEBD3</item>
+    <item name="ledgerAttention">#B54529</item>
+    <item name="ledgerSuccess">#1E6E41</item>
+    <item name="ledgerSelected">#142D35</item>
+    <item name="ledgerOnSelected">#FFFFFF</item>
+    <item name="ledgerReview">#B54529</item>
+    <item name="ledgerOnReview">#FFFFFF</item>
+    <item name="ledgerField">@android:color/system_neutral2_50</item>
+    <item name="android:editTextStyle">@style/LedgerField</item>
+  </style>
+  <style name="AppTheme.Dark" parent="android:style/Theme.Material.NoActionBar">
+    <item name="android:windowBackground">@android:color/system_neutral1_900</item>
+    <item name="android:colorBackground">@android:color/system_neutral1_900</item>
+    <item name="android:textColorPrimary">@android:color/system_neutral1_50</item>
+    <item name="android:textColorSecondary">@android:color/system_neutral2_200</item>
+    <item name="android:colorAccent">@android:color/system_accent1_200</item>
+    <item name="android:alertDialogTheme">@style/AppDialog.Dark</item>
+    <item name="android:forceDarkAllowed">false</item>
+    <item name="android:windowLightStatusBar">false</item>
+    <item name="android:windowLightNavigationBar">false</item>
+    <item name="ledgerTabBackground">#243B44</item>
+    <item name="ledgerTabBorder">#789C9F</item>
+    <item name="ledgerSurface">#1B2B30</item>
+    <item name="ledgerNotice">#3E3023</item>
+    <item name="ledgerAttention">#FFAD90</item>
+    <item name="ledgerSuccess">#9AE1B3</item>
+    <item name="ledgerSelected">#B9EDCC</item>
+    <item name="ledgerOnSelected">#142D35</item>
+    <item name="ledgerReview">#6E2C1C</item>
+    <item name="ledgerOnReview">#FFE0D6</item>
+    <item name="ledgerField">@android:color/system_neutral2_700</item>
+    <item name="android:editTextStyle">@style/LedgerField</item>
+  </style>
+  <style name="AppDialog.Light" parent="android:style/Theme.Material.Light.Dialog.Alert">
+    <item name="android:datePickerStyle">@style/CalendarPicker</item>
+    <item name="android:colorAccent">@android:color/system_accent1_600</item>
+    <item name="android:colorBackground">@android:color/system_neutral1_10</item>
+    <item name="android:textColorPrimary">@android:color/system_neutral1_900</item>
+    <item name="android:textColorSecondary">@android:color/system_neutral2_700</item>
+    <item name="android:windowBackground">@drawable/dialog_background</item>
+    <item name="android:buttonBarButtonStyle">@style/LedgerDialogButton</item>
+  </style>
+  <style name="AppDialog.Dark" parent="android:style/Theme.Material.Dialog.Alert">
+    <item name="android:datePickerStyle">@style/CalendarPicker</item>
+    <item name="android:colorAccent">@android:color/system_accent1_200</item>
+    <item name="android:colorBackground">@android:color/system_neutral1_800</item>
+    <item name="android:textColorPrimary">@android:color/system_neutral1_50</item>
+    <item name="android:textColorSecondary">@android:color/system_neutral2_200</item>
+    <item name="android:windowBackground">@drawable/dialog_background</item>
+    <item name="android:buttonBarButtonStyle">@style/LedgerDialogButton</item>
+  </style>
+</resources>
