@@ -3,10 +3,10 @@
 ## Install the app
 
 1. On an Android 8.0 or newer phone, download
-   **[Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/latest/download/Cards-Ledger-SMS.apk)**
-   from the [latest release](https://github.com/AbhishekR14/cards-ledger/releases/latest).
-   If Chrome warns that the file may be harmful, choose **Download anyway**. Open the link in a
-   browser: the GitHub app often cannot download release files.
+   **[Cards-Ledger-SMS.apk](https://raw.githubusercontent.com/AbhishekR14/cards-ledger/downloads/Cards-Ledger-SMS.apk)**,
+   which is always the latest release and works from the GitHub app as well as a browser.
+   If Chrome warns that the file may be harmful, choose **Download anyway**. The same file is on
+   the [releases page](https://github.com/AbhishekR14/cards-ledger/releases/latest).
 2. Open the downloaded file. If Android asks, allow installs from the app you opened it with.
 3. Open **Cards Ledger**.
 

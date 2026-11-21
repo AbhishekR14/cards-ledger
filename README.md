@@ -38,9 +38,9 @@ stays on your phone.
 
 ## Download
 
-**[Cards-Ledger-SMS.apk](https://github.com/AbhishekR14/cards-ledger/releases/latest/download/Cards-Ledger-SMS.apk)**
-from the [latest release](https://github.com/AbhishekR14/cards-ledger/releases/latest). Requires
-Android 8.0 or newer.
+**[Download Cards-Ledger-SMS.apk](https://raw.githubusercontent.com/AbhishekR14/cards-ledger/downloads/Cards-Ledger-SMS.apk)**
+(always the latest release). Requires Android 8.0 or newer. Release notes and checksums are on the
+[releases page](https://github.com/AbhishekR14/cards-ledger/releases/latest).
 
 The app is installed from the APK rather than a store. If Chrome warns that the file may be harmful,
 choose **Download anyway**. [Installation](docs/INSTALLATION.md) covers Play Protect, Android's

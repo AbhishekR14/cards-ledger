@@ -55,6 +55,11 @@ Either way, the workflow checks that the version matches `versionName`, builds a
 publishes a GitHub release with `Cards-Ledger-SMS.apk` and `SHA256SUMS.txt`. A tag with a suffix,
 such as `v1.1.0-beta.1`, is published as a prerelease.
 
+When the release succeeds, the **Publish download link** workflow copies its APK to the `downloads`
+branch, which the README's download link points at through `raw.githubusercontent.com`. That link
+works from the GitHub mobile app, which cannot download release assets itself. The branch keeps a
+single commit, so it never grows. Run the workflow from the Actions tab to republish by hand.
+
 ## After publishing
 
 Install the release on a phone over the previous version and work through the

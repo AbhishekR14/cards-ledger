@@ -1,0 +1,56 @@
+name: Publish download link
+
+# Copies the latest release's APK to the `downloads` branch, so README links can point at
+# raw.githubusercontent.com. The GitHub mobile app opens github.com links inside itself, where a
+# release asset will not download; a raw link is handed to the browser and downloads directly.
+# The branch always holds a single commit, so old APKs never accumulate in the repository.
+
+on:
+  workflow_run:
+    workflows: ['Build and publish APK release']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: download-link
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Fetch the latest release's APK
+        run: |
+          set -euo pipefail
+          mkdir site && cd site
+          tag=$(gh release view --repo "$REPO" --json tagName -q .tagName)
+          gh release download "$tag" --repo "$REPO" --pattern Cards-Ledger-SMS.apk
+          sha=$(sha256sum Cards-Ledger-SMS.apk | cut -d' ' -f1)
+          {
+            echo "# Cards Ledger downloads"
+            echo
+            echo "This branch is published automatically and holds only the latest release's APK."
+            echo
+            echo "- Release: [$tag](https://github.com/$REPO/releases/tag/$tag)"
+            echo "- File: Cards-Ledger-SMS.apk"
+            echo "- SHA-256: \`$sha\`"
+          } > README.md
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+      - name: Replace the downloads branch
+        working-directory: site
+        run: |
+          set -euo pipefail
+          git init -q -b downloads
+          git add Cards-Ledger-SMS.apk README.md
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -q -m "Cards Ledger $TAG"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" downloads
