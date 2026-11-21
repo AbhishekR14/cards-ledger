@@ -1,4 +1,6 @@
 import in.local.liveplus.Alerts;
+import in.local.liveplus.NotificationCapture;
+import in.local.liveplus.SmsCapture;
 import java.time.*;
 import java.util.*;
 
@@ -74,6 +76,37 @@ public class AlertsTest {
 
   check(Alerts.fold("AD-AXISBK").equals("ad axisbk"),"sender ids flatten to searchable words");
   check(Alerts.fold("AD-AXISBK").contains("axis"),"a sender id still carries the bank's name");
+
+  // Incoming SMS: assembly, timestamps and the replay fingerprint stay with upstream's SmsCapture.
+  java.util.List<SmsCapture.Part> axisSms=java.util.Arrays.asList(
+   new SmsCapture.Part("AD-AXISBK","INR 2,500.00 spent on Axis Bank Credit Card no. XX5678 ",NOW),
+   new SmsCapture.Part("AD-AXISBK","at BLINKIT on 21-11-2026",NOW));
+  Alerts.SmsMatch sms=Alerts.routeSms(axisSms,NOW-1000,NOW,-1,CARDS);
+  check(sms!=null&&sms.cardId==2,"a multipart SMS routes to its card");
+  check(sms.candidate.transaction.amount==250000&&sms.candidate.transaction.merchant.equals("BLINKIT"),"both parts are read as one message");
+  check(!sms.candidate.event.isEmpty(),"the routed SMS still carries a replay fingerprint");
+  check(Alerts.routeSms(axisSms,NOW+5000,NOW,-1,CARDS)==null,"an SMS older than the capture start is ignored");
+  check(Alerts.routeSms(java.util.Arrays.asList(new SmsCapture.Part("AD-AXISBK","OTP 445566 for your Axis Bank card XX5678",NOW)),NOW-1000,NOW,-1,CARDS)==null,
+   "an OTP SMS is still rejected");
+  check(Alerts.routeSms(java.util.Arrays.asList(new SmsCapture.Part("VM-HDFCBK","INR 100 spent on HDFC Bank Card ending 5678 at CAFE",NOW)),NOW-1000,NOW,-1,CARDS)==null,
+   "an SMS from a bank with no card is ignored");
+  check(Alerts.routeSms(null,NOW-1000,NOW,-1,CARDS)==null,"no parts means no match");
+
+  // Notifications: the bank token goes into the title, which neither the replay cache key nor the
+  // event fingerprint is built from.
+  NotificationCapture.Envelope envelope=new NotificationCapture.Envelope();
+  envelope.source="com.example.messages";envelope.key="0|com.example.messages|1|null|10";envelope.posted=NOW;
+  envelope.title="AD-AXISBK";
+  envelope.bigText="INR 500.00 spent on Axis Bank Credit Card XX5678 at CAFE on 21-11-2026";
+  check(Alerts.accepts(envelope,AXIS),"the Axis card accepts an Axis notification");
+  check(!Alerts.accepts(envelope,HSBC),"the HSBC card ignores an Axis notification");
+  check(NotificationCapture.cacheKey(Alerts.withGate(envelope,"Axis")).equals(NotificationCapture.cacheKey(envelope)),
+   "gating a notification leaves its replay cache key alone");
+  NotificationCapture.Batch batch=NotificationCapture.collect(Alerts.withGate(envelope,"Axis"),"5678",NOW-1000,null);
+  check(batch.candidates.size()==1,"a gated notification yields one candidate");
+  check(batch.candidates.get(0).transaction.amount==50000,"the candidate carries the purchase");
+  check(NotificationCapture.collect(envelope,"5678",NOW-1000,null).candidates.isEmpty(),
+   "without the card's bank gate upstream's parser rejects another bank outright");
   return checks;
  }
  public static void main(String[] args){System.out.println("AlertsTest: "+run()+" checks");}

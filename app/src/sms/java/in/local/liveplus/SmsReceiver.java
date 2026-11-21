@@ -14,7 +14,7 @@ public final class SmsReceiver extends BroadcastReceiver {
   SharedPreferences p=Store.prefs(context);
   if(!CaptureMode.ID.equals(p.getString("captureEdition",""))||!p.getBoolean("capture",false)||!CaptureMode.access(context))return;
   long received=System.currentTimeMillis(),started=p.getLong("started",Long.MAX_VALUE);
-  String last4=p.getString("last4","");List<SmsCapture.Part> parts=new ArrayList<>();
+  List<SmsCapture.Part> parts=new ArrayList<>();
   try{
    SmsMessage[] messages=Telephony.Sms.Intents.getMessagesFromIntent(intent);if(messages==null)return;
    for(SmsMessage message:messages){if(message==null)return;parts.add(new SmsCapture.Part(message.getOriginatingAddress(),message.getMessageBody(),message.getTimestampMillis()));}
@@ -23,8 +23,10 @@ public final class SmsReceiver extends BroadcastReceiver {
   try{WORK.execute(()->{
    try{
     if(!p.getBoolean("capture",false)||p.getLong("started",Long.MAX_VALUE)!=started||!CaptureMode.access(app))return;
-    SmsCapture.Candidate candidate=SmsCapture.collect(parts,last4,started,received,subscription);
-    if(candidate!=null)CaptureStore.save(app,candidate.transaction,candidate.event,candidate.received,false,"SMS");
+    // MULTI-CARD: the message is offered to each capturing card in grid order; the first whose
+    // bank and card suffix both match keeps it, so it is never counted twice.
+    Alerts.SmsMatch match=Alerts.routeSms(parts,started,received,subscription,Cards.targets(app));
+    if(match!=null)CaptureStore.save(app,match.cardId,match.candidate.transaction,match.candidate.event,match.candidate.received,false,"SMS");
    }catch(RuntimeException ignored){p.edit().putBoolean("captureError",true).apply();}finally{pending.finish();}
   });}catch(RejectedExecutionException ignored){pending.finish();p.edit().putBoolean("captureError",true).apply();}
  }

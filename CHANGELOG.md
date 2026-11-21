@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.0 — multi-card fork
+
+First release of the **Cards Ledger** fork of Live+ Ledger. Tracks several credit cards, one tile
+per card; the HSBC Live+ card keeps upstream's parser, categories and cashback maths.
+
+- Home screen grid of cards, with each card's rewards this period, cap progress and review count.
+- Each card keeps its own ledger, merchant mappings, statement period, cap and reward plan.
+- Reward plans are editable per card: a percentage or points per block of spend for each
+  category, a cap on rewards or on qualifying spend, and rounding to match the bank. Presets for
+  HSBC Live+, accelerated cashback, flat cashback and reward points; plans import and export as
+  JSON.
+- Automatic capture is one device-wide switch; each card decides whether its own alerts are
+  added. An alert goes to the card whose bank and last four digits both match, so a purchase is
+  never counted twice.
+- Device settings (capture, SMS app, theme) moved to the home screen; card settings stayed with
+  the card.
+- Installs as `in.local.cards` beside Live+ Ledger. Move data across with a JSON backup.
+
 ## Unreleased
 
 - Refresh the Overview and Activity screenshots and keep the download section focused on APK selection.

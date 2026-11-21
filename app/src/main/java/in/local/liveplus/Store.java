@@ -8,7 +8,14 @@ import org.json.*;
 
 public final class Store extends SQLiteOpenHelper {
  public Store(Context c){super(c,"ledger.db",null,1);}
- public static SharedPreferences prefs(Context c){return c.getSharedPreferences("settings",Context.MODE_PRIVATE);}
+ // MULTI-CARD: one ledger file per card. Card 1 keeps upstream's "ledger.db", so a single-card
+ // install carries over untouched. See Cards and CardBook.
+ public Store(Context c,String name){super(c,name,null,1);}
+ // MULTI-CARD: capture state, the chosen SMS app and the theme belong to the device, not to one
+ // card, so the no-argument call now returns the global file and upstream's capture code reads it
+ // unchanged. A card's own ledger settings come from prefs(context, CardBook.preferences(id)).
+ public static SharedPreferences prefs(Context c){return c.getSharedPreferences(Cards.GLOBAL,Context.MODE_PRIVATE);}
+ public static SharedPreferences prefs(Context c,String name){return c.getSharedPreferences(name,Context.MODE_PRIVATE);}
  @Override public void onCreate(SQLiteDatabase db){
   db.execSQL("CREATE TABLE tx (id INTEGER PRIMARY KEY AUTOINCREMENT, amount INTEGER NOT NULL, merchant TEXT NOT NULL, date TEXT NOT NULL, category INTEGER NOT NULL, confirmed INTEGER NOT NULL, refund INTEGER NOT NULL, duplicate INTEGER NOT NULL, active INTEGER NOT NULL, received INTEGER NOT NULL, source TEXT NOT NULL, event TEXT UNIQUE, linked TEXT NOT NULL)");
   db.execSQL("CREATE TABLE rules (merchant TEXT PRIMARY KEY, category INTEGER NOT NULL)");
@@ -34,19 +41,39 @@ public final class Store extends SQLiteOpenHelper {
   }
   return out;
  }
- public void saveRule(String previous,String merchant,int category){
-  if(merchant.trim().isEmpty()||merchant.length()>90||category<=0||category>=Engine.CATEGORIES.length)throw new IllegalArgumentException("Invalid merchant category");
+ public void saveRule(String previous,String merchant,int category){saveRule(previous,merchant,category,Engine.CATEGORIES.length);}
+ // MULTI-CARD: a card's reward plan can list more or fewer categories than upstream's own.
+ public void saveRule(String previous,String merchant,int category,int categories){
+  if(merchant.trim().isEmpty()||merchant.length()>90||category<=0||category>=categories)throw new IllegalArgumentException("Invalid merchant category");
   SQLiteDatabase db=getWritableDatabase();db.beginTransaction();
   try{rule(merchant,category);if(previous!=null&&!Engine.key(previous).equals(Engine.key(merchant)))forgetRule(previous);db.setTransactionSuccessful();}finally{db.endTransaction();}
  }
- public void categorize(Engine.Tx x,boolean myntraPromo){
+ public void categorize(Engine.Tx x,boolean myntraPromo){categorize(x,myntraPromo,true);}
+ // MULTI-CARD: upstream's merchant catalogue returns HSBC Live+ category numbers. A card on
+ // another plan numbers its categories differently, so only its own saved mappings apply there.
+ public void categorize(Engine.Tx x,boolean myntraPromo,boolean suggest){
   if(x.refund){x.category=0;x.confirmed=false;return;}
   int remembered=rule(x.merchant);
-  x.category=Engine.category(x.merchant,java.time.LocalDate.parse(x.date),myntraPromo,remembered);
-  x.confirmed=remembered>0&&remembered<Engine.CATEGORIES.length;
+  x.category=suggest?Engine.category(x.merchant,java.time.LocalDate.parse(x.date),myntraPromo,remembered)
+   :(remembered>0?remembered:0);
+  x.confirmed=suggest?remembered>0&&remembered<Engine.CATEGORIES.length:remembered>0;
  }
  public JSONArray exportRows() throws JSONException {
   JSONArray a=new JSONArray();for(Engine.Tx x:all()){JSONObject o=new JSONObject();o.put("id",x.id);o.put("amountPaise",x.amount);o.put("merchant",x.merchant);o.put("date",x.date);o.put("category",x.category);o.put("confirmed",x.confirmed);o.put("refund",x.refund);o.put("duplicate",x.duplicate);o.put("active",x.active);o.put("received",x.received);o.put("source",x.source);o.put("event",x.event);o.put("linked",x.linked);a.put(o);}return a;
+ }
+ // MULTI-CARD: removing a reward category renumbers the ones after it, so stored rows follow.
+ // Purchases in the removed category go back to needing one.
+ public synchronized void remapCategories(int removed){
+  if(removed<=0)return;
+  SQLiteDatabase db=getWritableDatabase();db.beginTransaction();
+  try{
+   Object[] target={removed};
+   db.execSQL("UPDATE tx SET category=0, confirmed=0 WHERE category=?",target);
+   db.execSQL("UPDATE tx SET category=category-1 WHERE category>?",target);
+   db.execSQL("DELETE FROM rules WHERE category=?",target);
+   db.execSQL("UPDATE rules SET category=category-1 WHERE category>?",target);
+   db.setTransactionSuccessful();
+  }finally{db.endTransaction();}
  }
  public void wipe(){SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{db.delete("tx",null,null);db.delete("rules",null,null);db.setTransactionSuccessful();}finally{db.endTransaction();}}
 }

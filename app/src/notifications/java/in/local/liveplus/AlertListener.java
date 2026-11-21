@@ -35,11 +35,17 @@ public class AlertListener extends NotificationListenerService {
   try{
    StatusBarNotification[] active=getActiveNotifications();if(active==null)return;
    Set<String> sources=Collections.singleton(SmsApps.selected(this));long started=p.getLong("started",Long.MAX_VALUE);
+   // MULTI-CARD: each capturing card keeps its own replay baseline for the conversation.
+   List<Alerts.Target> targets=Cards.targets(this);
    for(StatusBarNotification sbn:active){
     if(!sources.contains(sbn.getPackageName()))continue;
-    NotificationCapture.Envelope input=envelope(sbn);String key=NotificationCapture.cacheKey(input);
-    NotificationCapture.State old=NotificationCapture.State.decode(p.getString(key,null));if(old.started==started)continue;
-    NotificationCapture.Batch batch=NotificationCapture.collect(input,p.getString("last4",""),started,null);batch.baseline();saveSnapshot(p,key,batch.state);
+    NotificationCapture.Envelope input=envelope(sbn);
+    for(Alerts.Target target:targets){
+     if(!Alerts.accepts(input,target))continue;
+     String key=cacheKey(input,target.cardId);
+     NotificationCapture.State old=NotificationCapture.State.decode(p.getString(key,null));if(old.started==started)continue;
+     NotificationCapture.Batch batch=NotificationCapture.collect(Alerts.withGate(input,target.issuer),target.last4,started,null);batch.baseline();saveSnapshot(p,key,batch.state);
+    }
    }
   }catch(RuntimeException ignored){p.edit().putBoolean("captureError",true).apply();}
  }
@@ -48,16 +54,33 @@ public class AlertListener extends NotificationListenerService {
   if(!p.getBoolean("capture",false)||!"notifications".equals(p.getString("captureEdition","notifications"))||!sbn.getPackageName().equals(SmsApps.selected(this)))return;
   long started=p.getLong("started",Long.MAX_VALUE);if(sbn.getPostTime()<started)return;
   try{
-   NotificationCapture.Envelope input=envelope(sbn);String key=NotificationCapture.cacheKey(input);
-   NotificationCapture.Batch batch=NotificationCapture.collect(input,p.getString("last4",""),started,NotificationCapture.State.decode(p.getString(key,null)));
-   for(NotificationCapture.Candidate candidate:batch.candidates){
-    int result=capture(candidate);if(result>0)candidate.processed();
+   NotificationCapture.Envelope input=envelope(sbn);
+   // MULTI-CARD: the alert is offered to each capturing card in grid order. Only the card whose
+   // bank and card suffix match claims it, so a purchase is never recorded twice.
+   for(Alerts.Target target:Cards.targets(this)){
+    if(!Alerts.accepts(input,target))continue;
+    String key=cacheKey(input,target.cardId);
+    NotificationCapture.Batch batch=NotificationCapture.collect(Alerts.withGate(input,target.issuer),target.last4,started,NotificationCapture.State.decode(p.getString(key,null)));
+    boolean claimed=false;
+    for(NotificationCapture.Candidate candidate:batch.candidates){
+     int result=capture(target.cardId,candidate);if(result>0){candidate.processed();claimed=true;}
+    }
+    saveSnapshot(p,key,batch.state);
+    if(claimed)return;
    }
-   saveSnapshot(p,key,batch.state);
   }catch(RuntimeException ignored){p.edit().putBoolean("captureError",true).apply();}
  }
  @Override public void onNotificationRemoved(StatusBarNotification sbn){
-  String key="capture_seen_"+NotificationCapture.digest(sbn.getPackageName()+"|"+sbn.getKey());Store.prefs(this).edit().remove(key).apply();
+  // MULTI-CARD: drop every card's baseline for the conversation that went away.
+  String key="capture_seen_"+NotificationCapture.digest(sbn.getPackageName()+"|"+sbn.getKey());
+  SharedPreferences.Editor edit=Store.prefs(this).edit().remove(key);
+  for(CardBook.Card card:Cards.book(this).cards())edit.remove(key+"-"+card.id);
+  edit.apply();
+ }
+ // MULTI-CARD: one baseline per conversation and card. The prefix stays upstream's, so the
+ // pruning in saveSnapshot still finds these.
+ private static String cacheKey(NotificationCapture.Envelope envelope,int cardId){
+  return NotificationCapture.cacheKey(envelope)+"-"+cardId;
  }
  private void saveSnapshot(SharedPreferences p,String key,NotificationCapture.State state){
   if(state.empty()){p.edit().remove(key).apply();return;}
@@ -67,8 +90,8 @@ public class AlertListener extends NotificationListenerService {
   caches.sort((a,b)->Long.compare(NotificationCapture.State.decode(String.valueOf(a.getValue())).posted,NotificationCapture.State.decode(String.valueOf(b.getValue())).posted));
   for(int i=0;i<caches.size()-63;i++)edit.remove(caches.get(i).getKey());edit.apply();
  }
- private int capture(NotificationCapture.Candidate candidate){
-  return CaptureStore.save(this,candidate.transaction,candidate.event,candidate.received,candidate.possibleDuplicate,"Alert");
+ private int capture(int cardId,NotificationCapture.Candidate candidate){
+  return CaptureStore.save(this,cardId,candidate.transaction,candidate.event,candidate.received,candidate.possibleDuplicate,"Alert");
  }
  private boolean hiddenContent(String text){
   if(text==null||text.trim().isEmpty())return false;

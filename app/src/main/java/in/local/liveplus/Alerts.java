@@ -58,6 +58,68 @@ public final class Alerts {
  public static String gate(String context,String issuer){
   return (context==null?"":context)+" "+(issuer==null?"":issuer)+" HSBC";
  }
+ /** True when this card's bank and sender gates accept the alert, before any parsing. */
+ public static boolean accepts(String context,String body,Target target){
+  if(target==null||!target.ready())return false;
+  String haystack=fold((context==null?"":context)+" "+(body==null?"":body));
+  return haystack.contains(fold(target.issuer))&&senderMatches(fold(context==null?"":context),target.senders);
+ }
+
+ /** One incoming SMS, matched to a card. */
+ public static final class SmsMatch {
+  public final int cardId; public final SmsCapture.Candidate candidate;
+  SmsMatch(int cardId,SmsCapture.Candidate candidate){this.cardId=cardId;this.candidate=candidate;}
+ }
+ /**
+  * Routes one newly delivered SMS. Multipart assembly, timestamp checks and the replay
+  * fingerprint stay in {@link SmsCapture}; this only decides whose card it is.
+  */
+ public static SmsMatch routeSms(List<SmsCapture.Part> parts,long started,long received,int subscription,List<Target> targets){
+  if(parts==null||parts.isEmpty()||targets==null)return null;
+  SmsCapture.Part first=parts.get(0);
+  if(first==null)return null;
+  StringBuilder body=new StringBuilder();
+  for(SmsCapture.Part part:parts){
+   if(part==null)return null;
+   body.append(part.body).append(' ');
+   if(body.length()>8000)break;
+  }
+  for(Target target:targets){
+   if(!accepts(first.sender,body.toString(),target))continue;
+   SmsCapture.Candidate candidate=SmsCapture.collect(withGate(parts,target.issuer),target.last4,started,received,subscription);
+   if(candidate!=null)return new SmsMatch(target.cardId,candidate);
+  }
+  return null;
+ }
+ /** The same parts with the bank token added to the sender, so upstream's own gate passes. */
+ public static List<SmsCapture.Part> withGate(List<SmsCapture.Part> parts,String issuer){
+  List<SmsCapture.Part> out=new ArrayList<>();
+  for(SmsCapture.Part part:parts)out.add(part==null?null:new SmsCapture.Part(gate(part.sender,issuer),part.body,part.sent));
+  return out;
+ }
+ /** The same notification with the bank token added to its title. The replay cache key and the
+  * event fingerprint are built from the source, the notification key and the body, so adding to
+  * the title changes neither. */
+ public static NotificationCapture.Envelope withGate(NotificationCapture.Envelope envelope,String issuer){
+  NotificationCapture.Envelope out=new NotificationCapture.Envelope();
+  out.source=envelope.source;out.key=envelope.key;out.title=gate(envelope.title,issuer);
+  out.bigText=envelope.bigText;out.text=envelope.text;out.posted=envelope.posted;
+  out.summary=envelope.summary;out.redacted=envelope.redacted;
+  out.messages.addAll(envelope.messages);out.lines.addAll(envelope.lines);
+  return out;
+ }
+ /** True when the notification's own text names this card's bank. The conversation title, the
+  * posting app and each message's sender make up the sender side; everything else is the body. */
+ public static boolean accepts(NotificationCapture.Envelope envelope,Target target){
+  StringBuilder context=new StringBuilder(envelope.title).append(' ').append(envelope.source);
+  StringBuilder body=new StringBuilder(envelope.bigText).append(' ').append(envelope.text);
+  for(NotificationCapture.Message message:envelope.messages){
+   context.append(' ').append(message.sender);
+   body.append(' ').append(message.text);
+  }
+  for(String line:envelope.lines)body.append(' ').append(line);
+  return accepts(context.toString(),body.toString(),target);
+ }
  private static boolean senderMatches(String senderField,List<String> senders){
   if(senders.isEmpty())return true;
   for(String sender:senders)if(!sender.trim().isEmpty()&&senderField.contains(fold(sender)))return true;

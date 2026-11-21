@@ -14,7 +14,8 @@ $sdkRoot = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { $env:ANDR
 if (!$AndroidJar -and $sdkRoot) { $AndroidJar = Join-Path $sdkRoot 'platforms/android-35/android.jar' }
 if (!$BuildTools -and $sdkRoot) { $BuildTools = Join-Path $sdkRoot 'build-tools/35.0.0' }
 if (!$JavaHome -or !$AndroidJar -or !$BuildTools) { throw 'Pass build tool paths or set JAVA_HOME and ANDROID_SDK_ROOT / ANDROID_HOME.' }
-if (!$Output) { $Output = Join-Path $PSScriptRoot ("build/LivePlus-Ledger-" + $(if ($Edition -eq "sms") { "SMS" } else { "Notifications" }) + ".apk") }
+# MULTI-CARD: the app ships as Cards Ledger; its Java package stays in.local.liveplus.
+if (!$Output) { $Output = Join-Path $PSScriptRoot ("build/Cards-Ledger-" + $(if ($Edition -eq "sms") { "SMS" } else { "Notifications" }) + ".apk") }
 $Output = [IO.Path]::GetFullPath($Output)
 foreach ($required in @("$JavaHome/bin/javac.exe", "$JavaHome/bin/java.exe", "$JavaHome/bin/jar.exe", "$JavaHome/bin/keytool.exe", $AndroidJar, "$BuildTools/aapt2.exe", "$BuildTools/zipalign.exe", "$BuildTools/lib/d8.jar", "$BuildTools/lib/apksigner.jar", "$BuildTools/core-lambda-stubs.jar")) {
  if (!(Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required tool missing: $required" }
@@ -24,8 +25,9 @@ $main = Join-Path $PSScriptRoot 'app/src/main'
 $editionSources = Join-Path $PSScriptRoot "app/src/$Edition/java"
 New-Item -ItemType Directory -Force -Path "$build/classes","$build/dex","$build/res","$build/generated","$build/test",(Split-Path -Parent $Output) | Out-Null
 Run-Checked "$JavaHome/bin/javac.exe" @('-encoding','UTF-8','-source','8','-target','8','-Xlint:-options','-d',"$build/test","$PSScriptRoot/tools/Compile.java")
-Run-Checked "$JavaHome/bin/javac.exe" @('-encoding','UTF-8','-source','8','-target','8','-Xlint:-options','-d',"$build/test","$main/java/in/local/liveplus/Engine.java","$main/java/in/local/liveplus/NotificationCapture.java","$main/java/in/local/liveplus/SmsCapture.java","$PSScriptRoot/tests/EngineTest.java","$PSScriptRoot/tests/NotificationCaptureTest.java","$PSScriptRoot/tests/SmsCaptureTest.java","$main/java/in/local/liveplus/SettingsValues.java","$PSScriptRoot/tests/SettingsValuesTest.java")
+Run-Checked "$JavaHome/bin/javac.exe" @('-encoding','UTF-8','-source','8','-target','8','-Xlint:-options','-d',"$build/test","$main/java/in/local/liveplus/Engine.java","$main/java/in/local/liveplus/NotificationCapture.java","$main/java/in/local/liveplus/SmsCapture.java","$PSScriptRoot/tests/EngineTest.java","$PSScriptRoot/tests/NotificationCaptureTest.java","$PSScriptRoot/tests/SmsCaptureTest.java","$main/java/in/local/liveplus/SettingsValues.java","$PSScriptRoot/tests/SettingsValuesTest.java","$main/java/in/local/liveplus/Json.java","$main/java/in/local/liveplus/RewardPlan.java","$main/java/in/local/liveplus/Rewards.java","$main/java/in/local/liveplus/CardBook.java","$main/java/in/local/liveplus/Alerts.java","$PSScriptRoot/tests/JsonTest.java","$PSScriptRoot/tests/RewardPlanTest.java","$PSScriptRoot/tests/RewardsTest.java","$PSScriptRoot/tests/CardBookTest.java","$PSScriptRoot/tests/AlertsTest.java","$PSScriptRoot/tests/MultiCardTest.java")
 Run-Checked "$JavaHome/bin/java.exe" @('-cp',"$build/test",'EngineTest')
+Run-Checked "$JavaHome/bin/java.exe" @('-cp',"$build/test",'MultiCardTest')
 # Derive the SMS manifest from the common app/version metadata. No listener or app queries survive.
 [xml]$manifest = Get-Content -LiteralPath "$main/AndroidManifest.xml" -Raw
 $androidNs = 'http://schemas.android.com/apk/res/android'
@@ -36,7 +38,8 @@ if ($Edition -eq 'sms') {
  $permission.SetAttribute('name',$androidNs,'android.permission.RECEIVE_SMS') | Out-Null
  $manifest.manifest.AppendChild($permission) | Out-Null
  $receiver = $manifest.CreateElement('receiver')
- $receiver.SetAttribute('name',$androidNs,'.SmsReceiver') | Out-Null
+ # MULTI-CARD: written in full because the manifest package differs from the Java package.
+ $receiver.SetAttribute('name',$androidNs,'in.local.liveplus.SmsReceiver') | Out-Null
  $receiver.SetAttribute('permission',$androidNs,'android.permission.BROADCAST_SMS') | Out-Null
  $receiver.SetAttribute('exported',$androidNs,'true') | Out-Null
  $filter = $manifest.CreateElement('intent-filter');$action = $manifest.CreateElement('action')

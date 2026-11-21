@@ -1,6 +1,19 @@
-# Live+ Ledger
+# Cards Ledger
 
-An offline Android app for tracking spending and estimated cashback on the **HSBC Live+ credit card issued in India**.
+An offline Android app for tracking spending and estimated rewards across **several Indian credit cards**, one tile per card.
+
+A fork of [chetanatole/hsbc-liveplus-ledger](https://github.com/chetanatole/hsbc-liveplus-ledger), which tracks a single HSBC Live+ card. That card is one tile here and keeps upstream's own parser, categories and cashback maths; the rest of this app is the shell around it.
+
+- **[Using several cards](docs/MULTI-CARD.md)** — the card grid, reward plans, how an alert finds its card, and moving over from Live+ Ledger.
+- **[Keeping this fork in sync](docs/FORK-SYNC.md)** — pulling upstream changes, and which files this fork touches.
+
+Each card keeps its own ledger, merchant mappings, statement period and reward plan. Rates are yours to enter: a percentage per category, points per block of spend, a cap on rewards or on qualifying spend. The HSBC Live+ plan ships as a preset.
+
+The app installs as **Cards Ledger** (`in.local.cards`) and sits alongside Live+ Ledger rather than replacing it; move your data across with a JSON backup.
+
+The rest of this page is upstream's, and describes the HSBC Live+ card.
+
+---
 
 See accelerated-category spend, estimated cashback and remaining room under your configured cap. No bank login or full card number is required.
 

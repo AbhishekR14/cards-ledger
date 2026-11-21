@@ -57,6 +57,21 @@ every such edit carries a `// MULTI-CARD:` comment so a conflict hunk is immedia
 | `app/src/main/AndroidManifest.xml` | App identity, label, launcher activity |
 | `build.ps1`, `tools/test.ps1` | Added test sources and the extra test runner |
 
+## Two things worth knowing before your first merge
+
+**The app was renamed, the code was not.** The manifest declares `package="in.local.cards"` and
+the label "Cards Ledger", while every Java source stays in `in.local.liveplus`. Component names
+in the manifest are therefore written in full. Renaming the Java package would have rewritten
+every file and made each sync a conflict; this way upstream's sources apply as they are, and
+`tools/verify-apk.ps1`, which greps dex paths, needs no change either. `MainActivity` and
+`HomeActivity` import `in.local.cards.R`.
+
+**Upstream's capture settings moved, they were not rewritten.** The "Automatic capture" and
+"Appearance" blocks now live in `MainActivity.deviceSettings()` instead of `settings()`, because
+capture belongs to the device and not to one card. Their bodies are upstream's. If a merge
+conflicts there, take upstream's block and move it back into `deviceSettings()`, changing only
+`p` to `g` for the device-wide keys.
+
 ## Resolving a conflict
 
 1. **Prefer upstream's version of upstream's logic.** If a conflict is inside parsing, category

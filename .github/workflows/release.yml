@@ -65,7 +65,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $expected = (Get-Content -LiteralPath 'docs/RELEASE_SIGNING_CERTIFICATE.txt' -Raw).Trim().ToLowerInvariant()
-          $assets = @('LivePlus-Ledger-Notifications.apk','LivePlus-Ledger-SMS.apk')
+          $assets = @('Cards-Ledger-Notifications.apk','Cards-Ledger-SMS.apk')
           $checksums = foreach ($asset in $assets) {
             $apk = Join-Path 'build' $asset
             $certs = & "$env:JAVA_HOME/bin/java.exe" -jar "$env:ANDROID_SDK_ROOT/build-tools/35.0.0/lib/apksigner.jar" verify --print-certs $apk
@@ -81,7 +81,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $releaseArgs = @('release','create',$env:GITHUB_REF_NAME,'build/LivePlus-Ledger-Notifications.apk','build/LivePlus-Ledger-SMS.apk','build/SHA256SUMS.txt','--repo',$env:GITHUB_REPOSITORY,'--verify-tag','--title',"Live+ Ledger $env:GITHUB_REF_NAME",'--notes-file','.github/RELEASE_NOTES.md','--generate-notes')
+          $releaseArgs = @('release','create',$env:GITHUB_REF_NAME,'build/Cards-Ledger-Notifications.apk','build/Cards-Ledger-SMS.apk','build/SHA256SUMS.txt','--repo',$env:GITHUB_REPOSITORY,'--verify-tag','--title',"Cards Ledger $env:GITHUB_REF_NAME",'--notes-file','.github/RELEASE_NOTES.md','--generate-notes')
           if ($env:GITHUB_REF_NAME.Contains('-')) { $releaseArgs += '--prerelease' }
           & gh @releaseArgs
           if ($LASTEXITCODE -ne 0) { throw 'GitHub release creation failed. Check whether this tag already has a release before retrying.' }

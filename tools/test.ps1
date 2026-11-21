@@ -23,9 +23,22 @@ $sources = @(
   (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/SmsCapture.java'),
   (Join-Path $repoRoot 'tests/SmsCaptureTest.java'),
   (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/SettingsValues.java'),
-  (Join-Path $repoRoot 'tests/SettingsValuesTest.java')
+  (Join-Path $repoRoot 'tests/SettingsValuesTest.java'),
+  (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/Json.java'),
+  (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/RewardPlan.java'),
+  (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/Rewards.java'),
+  (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/CardBook.java'),
+  (Join-Path $repoRoot 'app/src/main/java/in/local/liveplus/Alerts.java'),
+  (Join-Path $repoRoot 'tests/JsonTest.java'),
+  (Join-Path $repoRoot 'tests/RewardPlanTest.java'),
+  (Join-Path $repoRoot 'tests/RewardsTest.java'),
+  (Join-Path $repoRoot 'tests/CardBookTest.java'),
+  (Join-Path $repoRoot 'tests/AlertsTest.java'),
+  (Join-Path $repoRoot 'tests/MultiCardTest.java')
 )
 & $javac -encoding UTF-8 -source 8 -target 8 -Xlint:-options -d $OutputDirectory @sources
 if ($LASTEXITCODE -ne 0) { throw "Test compilation failed: $LASTEXITCODE" }
 & $java -cp $OutputDirectory EngineTest
 if ($LASTEXITCODE -ne 0) { throw "Tests failed: $LASTEXITCODE" }
+& $java -cp $OutputDirectory MultiCardTest
+if ($LASTEXITCODE -ne 0) { throw "Multi-card tests failed: $LASTEXITCODE" }
