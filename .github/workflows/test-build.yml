@@ -1,0 +1,84 @@
+name: Test build APKs
+
+# Builds both editions on a Windows runner and publishes them as a prerelease you can install
+# from your phone. No repository secrets are needed: build.ps1 generates a personal signing key
+# when none is present, so every run signs with a new key. Releasing properly is release.yml,
+# which needs a retained key.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to publish the test APKs under
+        default: test-build
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: test-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Ensure Android platform and build tools
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sdk = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { $env:ANDROID_HOME }
+          if (!$sdk) { throw 'Android SDK not found on the Windows runner.' }
+          $manager = Get-ChildItem -LiteralPath "$sdk/cmdline-tools" -Filter 'sdkmanager.bat' -Recurse | Select-Object -First 1
+          if (!$manager) { throw 'sdkmanager.bat is missing.' }
+          & $manager.FullName 'platforms;android-35' 'build-tools;35.0.0'
+          if ($LASTEXITCODE -ne 0) { throw 'Android SDK package installation failed.' }
+          "ANDROID_SDK_ROOT=$sdk" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Build, test and verify both APK editions
+        run: ./tools/build-all.ps1
+      - name: Publish the test APKs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = if ($env:TAG) { $env:TAG } else { 'test-build' }
+          if ($tag -notmatch '^[A-Za-z0-9._-]{1,40}$') { throw 'Use a simple tag name.' }
+          [xml]$manifest = Get-Content -LiteralPath 'app/src/main/AndroidManifest.xml' -Raw
+          $version = $manifest.manifest.GetAttribute('versionName','http://schemas.android.com/apk/res/android')
+          $short = $env:GITHUB_SHA.Substring(0,7)
+          $lines = @(
+            "Test build of Cards Ledger $version from $env:GITHUB_REF_NAME at $short.",
+            '',
+            'Install **one** edition. Both have the same ledger features and differ only in how purchases are captured.',
+            '',
+            '| Download | Access it asks for |',
+            '| --- | --- |',
+            '| **Cards-Ledger-Notifications.apk** | Notification access, no SMS permission |',
+            '| **Cards-Ledger-SMS.apk** | RECEIVE_SMS for new incoming messages, no notification access |',
+            '',
+            '**This is a test build, not a release.** Every run of this workflow signs with a newly generated key, so a later test build will not install over this one. Uninstall the previous test build first, exporting a backup from each card beforehand if you want to keep its ledger.',
+            '',
+            'It installs as in.local.cards, alongside an existing Live+ Ledger install rather than over it. Checksums are in SHA256SUMS.txt.'
+          )
+          [IO.File]::WriteAllText((Join-Path $PWD 'build/NOTES.md'),($lines -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          & gh release delete $tag --repo $env:GITHUB_REPOSITORY --yes --cleanup-tag 2>$null
+          $global:LASTEXITCODE = 0
+          & gh release create $tag 'build/Cards-Ledger-Notifications.apk' 'build/Cards-Ledger-SMS.apk' 'build/SHA256SUMS.txt' `
+            --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --prerelease `
+            --title "Cards Ledger $version test build" --notes-file 'build/NOTES.md'
+          if ($LASTEXITCODE -ne 0) { throw 'Publishing the test release failed.' }
+      - name: Remove the generated signing key
+        if: always()
+        run: Remove-Item -LiteralPath '.signing/personal-release.p12','.signing/key-password.txt' -Force -ErrorAction SilentlyContinue
